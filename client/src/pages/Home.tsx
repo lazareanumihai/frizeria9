@@ -371,8 +371,294 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── PRICING ── */}
+      <section className="py-24 md:py-32 relative overflow-hidden border-t border-border">
+        <div className="section-number" style={{ top: "2rem", right: "2rem" }}>02</div>
+        <div className="container">
+          <AnimatedSection>
+            <div className="flex items-center gap-4 mb-3">
+              <div className="gold-divider w-12" />
+              <span
+                className="text-xs tracking-[0.3em] uppercase text-gold"
+                style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 500 }}
+              >
+                Tarife
+              </span>
+            </div>
+            <h2
+              className="text-4xl md:text-6xl font-bold mb-4"
+              style={{ fontFamily: "'Cormorant Garamond', serif" }}
+            >
+              Prețurile Noastre
+            </h2>
+            <p
+              className="text-foreground/60 max-w-md mb-16"
+              style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 300 }}
+            >
+              Tarife transparente și competitive. Fiecare serviciu include consultație și finisaj profesional.
+            </p>
+          </AnimatedSection>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {/* Tuns */}
+            <AnimatedSection>
+              <div className="border border-border bg-card hover:border-gold/40 transition-all duration-300 overflow-hidden group">
+                <div className="p-8">
+                  <div className="flex items-start justify-between mb-6">
+                    <div>
+                      <div
+                        className="text-xs tracking-[0.25em] uppercase text-gold mb-2"
+                        style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 500 }}
+                      >
+                        Serviciu 01
+                      </div>
+                      <h3
+                        className="text-3xl font-bold"
+                        style={{ fontFamily: "'Cormorant Garamond', serif" }}
+                      >
+                        Tuns
+                      </h3>
+                    </div>
+                  </div>
+
+                  <div className="mb-6 pb-6 border-b border-border">
+                    <div
+                      className="text-4xl font-bold text-gold mb-1"
+                      style={{ fontFamily: "'Cormorant Garamond', serif" }}
+                    >
+                      40 RON
+                    </div>
+                    <p
+                      className="text-xs text-foreground/50 tracking-wider"
+                      style={{ fontFamily: "'Raleway', sans-serif" }}
+                    >
+                      Preț standard
+                    </p>
+                  </div>
+
+                  <p
+                    className="text-foreground/60 text-sm leading-relaxed mb-6"
+                    style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 300 }}
+                  >
+                    Tuns profesional adaptat stilului tău, cu consultație inclusă și finisaj cu produse premium.
+                  </p>
+
+                  <div className="space-y-3 mb-6">
+                    {[
+                      "Consultație personalizată",
+                      "Spălare și tratament",
+                      "Tuns precis cu foarfeci",
+                      "Finisaj cu produse premium",
+                    ].map((item) => (
+                      <div key={item} className="flex items-start gap-2.5">
+                        <Check size={12} className="text-gold mt-1.5 shrink-0" />
+                        <span
+                          className="text-xs text-foreground/70"
+                          style={{ fontFamily: "'Raleway', sans-serif" }}
+                        >
+                          {item}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="text-xs text-foreground/40 pt-4 border-t border-border">
+                    <span style={{ fontFamily: "'Raleway', sans-serif" }}>⏱ Durată: 45 minute</span>
+                  </div>
+                </div>
+              </div>
+            </AnimatedSection>
+
+            {/* Bărbierit */}
+            <AnimatedSection>
+              <div className="border border-border bg-card hover:border-gold/40 transition-all duration-300 overflow-hidden group">
+                <div className="p-8">
+                  <div className="flex items-start justify-between mb-6">
+                    <div>
+                      <div
+                        className="text-xs tracking-[0.25em] uppercase text-gold mb-2"
+                        style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 500 }}
+                      >
+                        Serviciu 02
+                      </div>
+                      <h3
+                        className="text-3xl font-bold"
+                        style={{ fontFamily: "'Cormorant Garamond', serif" }}
+                      >
+                        Bărbierit
+                      </h3>
+                    </div>
+                  </div>
+
+                  <div className="mb-6 pb-6 border-b border-border">
+                    <div
+                      className="text-4xl font-bold text-gold mb-1"
+                      style={{ fontFamily: "'Cormorant Garamond', serif" }}
+                    >
+                      35 RON
+                    </div>
+                    <p
+                      className="text-xs text-foreground/50 tracking-wider"
+                      style={{ fontFamily: "'Raleway', sans-serif" }}
+                    >
+                      Preț standard
+                    </p>
+                  </div>
+
+                  <p
+                    className="text-foreground/60 text-sm leading-relaxed mb-6"
+                    style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 300 }}
+                  >
+                    Bărbierit clasic cu lamă dreaptă, prosop cald și spumă artizanală de calitate superioară.
+                  </p>
+
+                  <div className="space-y-3 mb-6">
+                    {[
+                      "Prosop cald și abur",
+                      "Spumă artizanală premium",
+                      "Lamă dreaptă profesională",
+                      "After-shave și balsam",
+                    ].map((item) => (
+                      <div key={item} className="flex items-start gap-2.5">
+                        <Check size={12} className="text-gold mt-1.5 shrink-0" />
+                        <span
+                          className="text-xs text-foreground/70"
+                          style={{ fontFamily: "'Raleway', sans-serif" }}
+                        >
+                          {item}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="text-xs text-foreground/40 pt-4 border-t border-border">
+                    <span style={{ fontFamily: "'Raleway', sans-serif" }}>⏱ Durată: 30 minute</span>
+                  </div>
+                </div>
+              </div>
+            </AnimatedSection>
+
+            {/* Tuns + Bărbierit */}
+            <AnimatedSection>
+              <div className="border-2 border-gold bg-card/50 overflow-hidden group relative">
+                <div className="absolute top-4 right-4 bg-gold text-background px-3 py-1 text-xs font-bold tracking-wider" style={{ fontFamily: "'Raleway', sans-serif" }}>
+                  POPULAR
+                </div>
+                <div className="p-8">
+                  <div className="flex items-start justify-between mb-6">
+                    <div>
+                      <div
+                        className="text-xs tracking-[0.25em] uppercase text-gold mb-2"
+                        style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 500 }}
+                      >
+                        Serviciu 03
+                      </div>
+                      <h3
+                        className="text-3xl font-bold"
+                        style={{ fontFamily: "'Cormorant Garamond', serif" }}
+                      >
+                        Pachet Complet
+                      </h3>
+                    </div>
+                  </div>
+
+                  <div className="mb-6 pb-6 border-b border-gold/20">
+                    <div
+                      className="text-4xl font-bold text-gold mb-1"
+                      style={{ fontFamily: "'Cormorant Garamond', serif" }}
+                    >
+                      65 RON
+                    </div>
+                    <p
+                      className="text-xs text-foreground/50 tracking-wider"
+                      style={{ fontFamily: "'Raleway', sans-serif" }}
+                    >
+                      Economisești 10 RON!
+                    </p>
+                  </div>
+
+                  <p
+                    className="text-foreground/60 text-sm leading-relaxed mb-6"
+                    style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 300 }}
+                  >
+                    Experiența completă — tuns profesional + bărbierit clasic în același serviciu.
+                  </p>
+
+                  <div className="space-y-3 mb-6">
+                    {[
+                      "Tuns cu consultație",
+                      "Spălare și tratament",
+                      "Prosop cald și abur",
+                      "Bărbierit cu lamă dreaptă",
+                      "Finisaj premium complet",
+                    ].map((item) => (
+                      <div key={item} className="flex items-start gap-2.5">
+                        <Check size={12} className="text-gold mt-1.5 shrink-0" />
+                        <span
+                          className="text-xs text-foreground/70"
+                          style={{ fontFamily: "'Raleway', sans-serif" }}
+                        >
+                          {item}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="text-xs text-foreground/40 pt-4 border-t border-gold/20">
+                    <span style={{ fontFamily: "'Raleway', sans-serif" }}>⏱ Durată: 75 minute</span>
+                  </div>
+                </div>
+              </div>
+            </AnimatedSection>
+          </div>
+
+          {/* Additional Info */}
+          <AnimatedSection className="mt-16">
+            <div className="border border-gold/20 bg-background/30 p-8 md:p-10">
+              <div className="grid md:grid-cols-3 gap-8">
+                {[
+                  {
+                    title: "Metode de Plată",
+                    items: ["Numerar", "Card (Visa/Mastercard)", "Plată online"],
+                  },
+                  {
+                    title: "Oferte Speciale",
+                    items: ["Abonament lunar — 10% reducere", "Referrals — 15 RON bonus", "Clienți noi — 5 RON reducere"],
+                  },
+                  {
+                    title: "Politica Anulării",
+                    items: ["Anulare cu 24h înainte — fără taxă", "Anulare cu mai puțin de 24h — 50% din preț", "No-show — taxa completă"],
+                  },
+                ].map((section) => (
+                  <div key={section.title}>
+                    <h4
+                      className="text-sm font-bold text-gold mb-3 tracking-wider uppercase"
+                      style={{ fontFamily: "'Raleway', sans-serif" }}
+                    >
+                      {section.title}
+                    </h4>
+                    <ul className="space-y-2">
+                      {section.items.map((item) => (
+                        <li
+                          key={item}
+                          className="text-xs text-foreground/60 flex items-start gap-2"
+                          style={{ fontFamily: "'Raleway', sans-serif" }}
+                        >
+                          <span className="text-gold mt-1.5">•</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </AnimatedSection>
+        </div>
+      </section>
+
       {/* ── ABOUT / TOOLS SECTION ── */}
-      <section className="py-24 md:py-32 relative overflow-hidden">
+      <section className="py-24 md:py-32 relative overflow-hidden border-t border-border">
         <div className="absolute inset-0">
           <img src={TOOLS_IMG} alt="Unelte frizerie" className="w-full h-full object-cover opacity-20" />
           <div className="absolute inset-0 bg-background/80" />
@@ -465,8 +751,8 @@ export default function Home() {
       </section>
 
       {/* ── BOOKING CTA ── */}
-      <section id="programare" className="py-24 md:py-32 relative overflow-hidden">
-        <div className="section-number" style={{ top: "2rem", left: "2rem" }}>02</div>
+      <section id="programare" className="py-24 md:py-32 relative overflow-hidden border-t border-border">
+        <div className="section-number" style={{ top: "2rem", left: "2rem" }}>03</div>
         <div className="container">
           <AnimatedSection>
             <div className="border border-gold/20 bg-card/30 p-12 md:p-16 text-center relative overflow-hidden">
@@ -526,7 +812,7 @@ export default function Home() {
 
       {/* ── CONTACT ── */}
       <section id="contact" className="py-24 md:py-32 border-t border-border relative overflow-hidden">
-        <div className="section-number" style={{ top: "2rem", right: "2rem" }}>03</div>
+        <div className="section-number" style={{ top: "2rem", right: "2rem" }}>04</div>
         <div className="container">
           <AnimatedSection>
             <div className="flex items-center gap-4 mb-3">
