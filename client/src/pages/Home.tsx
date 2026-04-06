@@ -238,7 +238,6 @@ export default function Home() {
 
       {/* ── SERVICES ── */}
       <section id="servicii" className="py-24 md:py-32 relative overflow-hidden">
-        <div className="section-number" style={{ top: "2rem", right: "2rem" }}>01</div>
         <div className="container">
           <AnimatedSection>
             <div className="flex items-center gap-4 mb-3">
@@ -373,7 +372,6 @@ export default function Home() {
 
       {/* ── PRICING ── */}
       <section className="py-24 md:py-32 relative overflow-hidden border-t border-border">
-        <div className="section-number" style={{ top: "2rem", right: "2rem" }}>02</div>
         <div className="container">
           <AnimatedSection>
             <div className="flex items-center gap-4 mb-3">
@@ -752,7 +750,6 @@ export default function Home() {
 
       {/* ── BOOKING CTA ── */}
       <section id="programare" className="py-24 md:py-32 relative overflow-hidden border-t border-border">
-        <div className="section-number" style={{ top: "2rem", left: "2rem" }}>03</div>
         <div className="container">
           <AnimatedSection>
             <div className="border border-gold/20 bg-card/30 p-12 md:p-16 text-center relative overflow-hidden">
@@ -812,7 +809,6 @@ export default function Home() {
 
       {/* ── CONTACT ── */}
       <section id="contact" className="py-24 md:py-32 border-t border-border relative overflow-hidden">
-        <div className="section-number" style={{ top: "2rem", right: "2rem" }}>04</div>
         <div className="container">
           <AnimatedSection>
             <div className="flex items-center gap-4 mb-3">
