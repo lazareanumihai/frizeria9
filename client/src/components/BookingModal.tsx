@@ -4,9 +4,10 @@
  * Multi-step booking: Service → Date → Time → Details → Confirm
  */
 
-import { useState } from "react";
-import { X, ChevronLeft, ChevronRight, Check, Calendar, Clock, Scissors, User, Phone } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, ChevronLeft, ChevronRight, Check, Calendar, Clock, Scissors, User, Phone, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
 
 interface BookingModalProps {
   open: boolean;
@@ -18,21 +19,21 @@ const SERVICES = [
     id: "tuns",
     name: "Tuns",
     duration: "45 min",
-    price: "de la 40 RON",
+    price: "40 RON",
     description: "Tuns profesional cu consultație și finisaj",
   },
   {
     id: "barbierit",
     name: "Bărbierit",
     duration: "30 min",
-    price: "de la 35 RON",
+    price: "35 RON",
     description: "Bărbierit clasic cu lamă dreaptă și prosop cald",
   },
   {
-    id: "tuns-barbierit",
+    id: "pachet_complet",
     name: "Tuns + Bărbierit",
     duration: "75 min",
-    price: "de la 65 RON",
+    price: "65 RON",
     description: "Pachet complet — tuns și bărbierit",
   },
 ];
@@ -66,11 +67,30 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [calendarMonth, setCalendarMonth] = useState(today.getMonth());
   const [calendarYear, setCalendarYear] = useState(today.getFullYear());
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Query occupied slots for selected date
+  const { data: occupiedSlots = [] } = trpc.bookings.getOccupiedSlots.useQuery(
+    { bookingDate: selectedDate || new Date() },
+    { enabled: !!selectedDate && step === 3 }
+  );
+
+  // Create booking mutation
+  const createBookingMutation = trpc.bookings.create.useMutation({
+    onSuccess: () => {
+      setSubmitted(true);
+      toast.success("Programare confirmată! Te așteptăm!");
+    },
+    onError: (error) => {
+      toast.error(error.message || "Eroare la crearea programării");
+      setIsSubmitting(false);
+    },
+  });
 
   if (!open) return null;
 
@@ -85,12 +105,15 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
     return false;
   };
 
-  const formatDate = (dateStr: string) => {
-    const [y, m, d] = dateStr.split("-").map(Number);
-    return `${d} ${MONTH_NAMES[m - 1]} ${y}`;
+  const formatDate = (date: Date) => {
+    return `${date.getDate()} ${MONTH_NAMES[date.getMonth()]} ${date.getFullYear()}`;
   };
 
-  const handleSubmit = () => {
+  const isTimeSlotOccupied = (slot: string) => {
+    return occupiedSlots.includes(slot);
+  };
+
+  const handleSubmit = async () => {
     if (!name.trim() || !phone.trim()) {
       toast.error("Te rugăm să completezi numele și numărul de telefon.");
       return;
@@ -99,7 +122,25 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
       toast.error("Numărul de telefon trebuie să aibă 10 cifre.");
       return;
     }
-    setSubmitted(true);
+
+    if (!selectedService || !selectedDate || !selectedTime) {
+      toast.error("Te rugăm să completezi toate câmpurile.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      await createBookingMutation.mutateAsync({
+        clientName: name,
+        clientPhone: phone,
+        serviceType: selectedService as "tuns" | "barbierit" | "pachet_complet",
+        bookingDate: selectedDate,
+        bookingTime: selectedTime,
+      });
+    } catch (error) {
+      // Error is handled by mutation's onError
+    }
   };
 
   const handleClose = () => {
@@ -112,6 +153,7 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
       setName("");
       setPhone("");
       setSubmitted(false);
+      setIsSubmitting(false);
     }, 300);
   };
 
@@ -248,7 +290,6 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
                 style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 600 }}
               >
                 Continuă
-                <ChevronRight size={16} className="inline ml-2" />
               </button>
             </div>
           )}
@@ -260,43 +301,51 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
                 className="text-sm text-foreground/50 mb-5"
                 style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 300 }}
               >
-                Alege data programării:
+                Alege data:
               </p>
 
               {/* Calendar header */}
               <div className="flex items-center justify-between mb-4">
                 <button
                   onClick={() => {
-                    if (calendarMonth === 0) { setCalendarMonth(11); setCalendarYear(y => y - 1); }
-                    else setCalendarMonth(m => m - 1);
+                    if (calendarMonth === 0) {
+                      setCalendarMonth(11);
+                      setCalendarYear(calendarYear - 1);
+                    } else {
+                      setCalendarMonth(calendarMonth - 1);
+                    }
                   }}
-                  className="text-foreground/50 hover:text-gold transition-colors p-1"
+                  className="text-foreground/50 hover:text-gold transition-colors"
                 >
                   <ChevronLeft size={18} />
                 </button>
-                <span
-                  className="text-sm font-semibold tracking-wider"
-                  style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "1.1rem" }}
+                <div
+                  className="text-sm font-semibold text-center flex-1"
+                  style={{ fontFamily: "'Raleway', sans-serif" }}
                 >
                   {MONTH_NAMES[calendarMonth]} {calendarYear}
-                </span>
+                </div>
                 <button
                   onClick={() => {
-                    if (calendarMonth === 11) { setCalendarMonth(0); setCalendarYear(y => y + 1); }
-                    else setCalendarMonth(m => m + 1);
+                    if (calendarMonth === 11) {
+                      setCalendarMonth(0);
+                      setCalendarYear(calendarYear + 1);
+                    } else {
+                      setCalendarMonth(calendarMonth + 1);
+                    }
                   }}
-                  className="text-foreground/50 hover:text-gold transition-colors p-1"
+                  className="text-foreground/50 hover:text-gold transition-colors"
                 >
                   <ChevronRight size={18} />
                 </button>
               </div>
 
-              {/* Day headers */}
-              <div className="grid grid-cols-7 mb-2">
+              {/* Day names */}
+              <div className="grid grid-cols-7 gap-1 mb-2">
                 {DAY_NAMES.map((d) => (
                   <div
                     key={d}
-                    className="text-center text-xs text-foreground/30 py-1 tracking-wider"
+                    className="text-center text-xs text-foreground/40 py-2"
                     style={{ fontFamily: "'Raleway', sans-serif" }}
                   >
                     {d}
@@ -311,13 +360,13 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
                 ))}
                 {Array.from({ length: daysInMonth }).map((_, i) => {
                   const day = i + 1;
-                  const dateStr = `${calendarYear}-${String(calendarMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+                  const date = new Date(calendarYear, calendarMonth, day);
                   const disabled = isDateDisabled(day);
-                  const selected = selectedDate === dateStr;
+                  const selected = selectedDate?.getDate() === day && selectedDate?.getMonth() === calendarMonth && selectedDate?.getFullYear() === calendarYear;
                   return (
                     <button
                       key={day}
-                      onClick={() => !disabled && setSelectedDate(dateStr)}
+                      onClick={() => !disabled && setSelectedDate(date)}
                       disabled={disabled}
                       className={`aspect-square flex items-center justify-center text-sm transition-all duration-200 ${
                         selected
@@ -376,20 +425,27 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
                 </p>
               )}
               <div className="grid grid-cols-4 gap-2">
-                {TIME_SLOTS.map((slot) => (
-                  <button
-                    key={slot}
-                    onClick={() => setSelectedTime(slot)}
-                    className={`py-2.5 text-sm border transition-all duration-200 ${
-                      selectedTime === slot
-                        ? "border-gold bg-gold/10 text-gold font-semibold"
-                        : "border-border hover:border-gold/40 text-foreground/70"
-                    }`}
-                    style={{ fontFamily: "'Raleway', sans-serif" }}
-                  >
-                    {slot}
-                  </button>
-                ))}
+                {TIME_SLOTS.map((slot) => {
+                  const occupied = isTimeSlotOccupied(slot);
+                  const selected = selectedTime === slot;
+                  return (
+                    <button
+                      key={slot}
+                      onClick={() => !occupied && setSelectedTime(slot)}
+                      disabled={occupied}
+                      className={`py-2.5 text-sm border transition-all duration-200 ${
+                        selected
+                          ? "border-gold bg-gold/10 text-gold font-semibold"
+                          : occupied
+                          ? "border-red-500/50 bg-red-500/10 text-red-400 cursor-not-allowed"
+                          : "border-green-500/50 bg-green-500/10 text-green-400 hover:border-green-500"
+                      }`}
+                      style={{ fontFamily: "'Raleway', sans-serif" }}
+                    >
+                      {slot}
+                    </button>
+                  );
+                })}
               </div>
               <button
                 onClick={() => selectedTime && setStep(4)}
@@ -450,30 +506,33 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
                     className="text-xs text-foreground/40 uppercase tracking-wider mb-1.5 flex items-center gap-1.5"
                     style={{ fontFamily: "'Raleway', sans-serif" }}
                   >
-                    <User size={11} /> Nume complet
+                    <User size={12} />
+                    Nume complet
                   </label>
                   <input
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Ion Popescu"
-                    className="w-full bg-background border border-border px-4 py-3 text-sm text-foreground placeholder:text-foreground/30 focus:outline-none focus:border-gold transition-colors"
+                    placeholder="Ex: Ion Popescu"
+                    className="w-full bg-background/50 border border-border px-3.5 py-2.5 text-sm text-foreground placeholder:text-foreground/20 focus:outline-none focus:border-gold transition-colors"
                     style={{ fontFamily: "'Raleway', sans-serif" }}
                   />
                 </div>
+
                 <div>
                   <label
                     className="text-xs text-foreground/40 uppercase tracking-wider mb-1.5 flex items-center gap-1.5"
                     style={{ fontFamily: "'Raleway', sans-serif" }}
                   >
-                    <Phone size={11} /> Număr de telefon
+                    <Phone size={12} />
+                    Telefon
                   </label>
                   <input
                     type="tel"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="07XX XXX XXX"
-                    className="w-full bg-background border border-border px-4 py-3 text-sm text-foreground placeholder:text-foreground/30 focus:outline-none focus:border-gold transition-colors"
+                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                    placeholder="Ex: 0758900900"
+                    className="w-full bg-background/50 border border-border px-3.5 py-2.5 text-sm text-foreground placeholder:text-foreground/20 focus:outline-none focus:border-gold transition-colors"
                     style={{ fontFamily: "'Raleway', sans-serif" }}
                   />
                 </div>
@@ -481,71 +540,59 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
 
               <button
                 onClick={handleSubmit}
-                className="btn-gold mt-6 w-full py-3.5 text-sm tracking-widest uppercase"
+                disabled={isSubmitting || !name.trim() || !phone.trim()}
+                className={`mt-6 w-full py-3.5 text-sm tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-2 ${
+                  !isSubmitting && name.trim() && phone.trim()
+                    ? "btn-gold"
+                    : "bg-muted text-foreground/30 cursor-not-allowed"
+                }`}
                 style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 600 }}
               >
-                Confirmă Programarea
+                {isSubmitting ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Se procesează...
+                  </>
+                ) : (
+                  <>
+                    <Check size={16} />
+                    Confirmă Programarea
+                  </>
+                )}
               </button>
             </div>
           )}
 
-          {/* SUCCESS */}
+          {/* STEP 5 — Confirmation */}
           {submitted && (
             <div className="text-center py-8">
-              <div className="w-16 h-16 rounded-full bg-gold/10 border border-gold flex items-center justify-center mx-auto mb-6">
-                <Check size={28} className="text-gold" />
+              <div className="w-16 h-16 bg-gold/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Check size={32} className="text-gold" />
               </div>
-              <h3
-                className="text-3xl font-bold mb-3"
+              <p
+                className="text-lg font-semibold mb-2"
                 style={{ fontFamily: "'Cormorant Garamond', serif" }}
               >
                 Programare Confirmată!
-              </h3>
-              <p
-                className="text-foreground/60 text-sm leading-relaxed mb-6"
-                style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 300 }}
-              >
-                Mulțumim, <span className="text-gold">{name}</span>! Te așteptăm la{" "}
-                <span className="text-gold">{selectedTime}</span>,{" "}
-                {selectedDate ? formatDate(selectedDate) : ""}.
               </p>
-              <div className="border border-gold/20 bg-background/30 p-4 mb-6 text-left">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Scissors size={13} className="text-gold" />
-                    <span style={{ fontFamily: "'Raleway', sans-serif" }}>{service?.name}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Calendar size={13} className="text-gold" />
-                    <span style={{ fontFamily: "'Raleway', sans-serif" }}>
-                      {selectedDate ? formatDate(selectedDate) : ""}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Clock size={13} className="text-gold" />
-                    <span style={{ fontFamily: "'Raleway', sans-serif" }}>{selectedTime}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Phone size={13} className="text-gold" />
-                    <span style={{ fontFamily: "'Raleway', sans-serif" }}>{phone}</span>
-                  </div>
-                </div>
-              </div>
+              <p
+                className="text-sm text-foreground/60 mb-6"
+                style={{ fontFamily: "'Raleway', sans-serif" }}
+              >
+                Te așteptăm pe {selectedDate && formatDate(selectedDate)} la {selectedTime}
+              </p>
               <p
                 className="text-xs text-foreground/40 mb-6"
                 style={{ fontFamily: "'Raleway', sans-serif" }}
               >
-                Dacă ai nevoie să modifici programarea, ne poți contacta la{" "}
-                <a href="tel:0758900900" className="text-gold hover:underline">
-                  0758 900 900
-                </a>
+                Vei primi o confirmare pe WhatsApp la {phone}
               </p>
               <button
                 onClick={handleClose}
-                className="btn-outline-gold px-8 py-3 text-xs"
+                className="btn-gold px-8"
                 style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 600 }}
               >
-                Închide
+                Gata
               </button>
             </div>
           )}

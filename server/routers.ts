@@ -3,7 +3,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, adminProcedure } from "./_core/trpc";
 import { z } from "zod";
-import { createBooking, getBookingsByDate, getAllBookings, updateBookingStatus, deleteBooking } from "./db";
+import { createBooking, getBookingsByDate, getAllBookings, updateBookingStatus, deleteBooking, isTimeSlotAvailable, getAvailableSlots } from "./db";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -32,6 +32,12 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input }) => {
+        // Check if time slot is available
+        const available = await isTimeSlotAvailable(input.bookingDate, input.bookingTime);
+        if (!available) {
+          throw new Error("Ora selectata este deja ocupata. Te rugam sa alegi o alta ora.");
+        }
+        
         const price = input.serviceType === "tuns" ? 40 : input.serviceType === "barbierit" ? 35 : 65;
         return createBooking({
           clientName: input.clientName,
@@ -66,6 +72,11 @@ export const appRouter = router({
       .input(z.object({ bookingId: z.number() }))
       .mutation(async ({ input }) => {
         return deleteBooking(input.bookingId);
+      }),
+    getOccupiedSlots: publicProcedure
+      .input(z.object({ bookingDate: z.date() }))
+      .query(async ({ input }) => {
+        return getAvailableSlots(input.bookingDate);
       }),
   }),
 });

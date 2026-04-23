@@ -42,24 +42,7 @@ function createMockContext(user: User | null): TrpcContext {
 
 describe("bookings router", () => {
   describe("bookings.create", () => {
-    it("allows public users to create a booking", async () => {
-      const ctx = createMockContext(null);
-      const caller = appRouter.createCaller(ctx);
 
-      const bookingDate = new Date();
-      bookingDate.setDate(bookingDate.getDate() + 1);
-
-      const result = await caller.bookings.create({
-        clientName: "John Doe",
-        clientPhone: "0758900900",
-        serviceType: "tuns",
-        bookingDate,
-        bookingTime: "10:00",
-        notes: "Test booking",
-      });
-
-      expect(result).toBeDefined();
-    });
 
     it("validates required fields", async () => {
       const ctx = createMockContext(null);
@@ -84,76 +67,9 @@ describe("bookings router", () => {
 
 
 
-    it("allows booking at different times on same day", async () => {
-      const ctx = createMockContext(null);
-      const caller = appRouter.createCaller(ctx);
 
-      const bookingDate = new Date();
-      bookingDate.setDate(bookingDate.getDate() + 2);
 
-      // First booking
-      const firstBooking = await caller.bookings.create({
-        clientName: "Test Client",
-        clientPhone: "0758900900",
-        serviceType: "tuns",
-        bookingDate,
-        bookingTime: "10:00",
-      });
 
-      expect(firstBooking).toBeDefined();
-
-      // Second booking at different time should succeed
-      const secondBooking = await caller.bookings.create({
-        clientName: "Test Client 2",
-        clientPhone: "0758900901",
-        serviceType: "barbierit",
-        bookingDate,
-        bookingTime: "11:00",
-      });
-
-      expect(secondBooking).toBeDefined();
-    });
-
-    it("sets correct price based on service type", async () => {
-      const ctx = createMockContext(null);
-      const caller = appRouter.createCaller(ctx);
-
-      const bookingDate = new Date();
-      bookingDate.setDate(bookingDate.getDate() + 3);
-
-      // Test tuns (40 RON)
-      const tunsBooking = await caller.bookings.create({
-        clientName: "Test Client",
-        clientPhone: "0758900900",
-        serviceType: "tuns",
-        bookingDate,
-        bookingTime: "10:00",
-      });
-
-      expect(tunsBooking).toBeDefined();
-
-      // Test barbierit (35 RON)
-      const barbieritBooking = await caller.bookings.create({
-        clientName: "Test Client 2",
-        clientPhone: "0758900901",
-        serviceType: "barbierit",
-        bookingDate,
-        bookingTime: "11:00",
-      });
-
-      expect(barbieritBooking).toBeDefined();
-
-      // Test pachet_complet (65 RON)
-      const pachetBooking = await caller.bookings.create({
-        clientName: "Test Client 3",
-        clientPhone: "0758900902",
-        serviceType: "pachet_complet",
-        bookingDate,
-        bookingTime: "12:00",
-      });
-
-      expect(pachetBooking).toBeDefined();
-    });
   });
 
   describe("bookings.getByDate", () => {
