@@ -165,3 +165,53 @@ export async function deleteBooking(bookingId: number) {
 
   return result;
 }
+
+export async function isTimeSlotAvailable(bookingDate: Date, bookingTime: string) {
+  const db = await getDb();
+  if (!db) {
+    return true;
+  }
+
+  const startOfDay = new Date(bookingDate);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(bookingDate);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  const existingBookings = await db
+    .select()
+    .from(bookings)
+    .where(
+      and(
+        gte(bookings.bookingDate, startOfDay),
+        lte(bookings.bookingDate, endOfDay),
+        eq(bookings.bookingTime, bookingTime)
+      )
+    )
+    .limit(1);
+
+  return existingBookings.length === 0;
+}
+
+export async function getAvailableSlots(bookingDate: Date) {
+  const db = await getDb();
+  if (!db) {
+    return [];
+  }
+
+  const startOfDay = new Date(bookingDate);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(bookingDate);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  const occupiedSlots = await db
+    .select({ bookingTime: bookings.bookingTime })
+    .from(bookings)
+    .where(
+      and(
+        gte(bookings.bookingDate, startOfDay),
+        lte(bookings.bookingDate, endOfDay)
+      )
+    );
+
+  return occupiedSlots.map(slot => slot.bookingTime);
+}

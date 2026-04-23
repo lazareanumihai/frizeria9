@@ -82,12 +82,44 @@ describe("bookings router", () => {
       }
     });
 
+
+
+    it("allows booking at different times on same day", async () => {
+      const ctx = createMockContext(null);
+      const caller = appRouter.createCaller(ctx);
+
+      const bookingDate = new Date();
+      bookingDate.setDate(bookingDate.getDate() + 2);
+
+      // First booking
+      const firstBooking = await caller.bookings.create({
+        clientName: "Test Client",
+        clientPhone: "0758900900",
+        serviceType: "tuns",
+        bookingDate,
+        bookingTime: "10:00",
+      });
+
+      expect(firstBooking).toBeDefined();
+
+      // Second booking at different time should succeed
+      const secondBooking = await caller.bookings.create({
+        clientName: "Test Client 2",
+        clientPhone: "0758900901",
+        serviceType: "barbierit",
+        bookingDate,
+        bookingTime: "11:00",
+      });
+
+      expect(secondBooking).toBeDefined();
+    });
+
     it("sets correct price based on service type", async () => {
       const ctx = createMockContext(null);
       const caller = appRouter.createCaller(ctx);
 
       const bookingDate = new Date();
-      bookingDate.setDate(bookingDate.getDate() + 1);
+      bookingDate.setDate(bookingDate.getDate() + 3);
 
       // Test tuns (40 RON)
       const tunsBooking = await caller.bookings.create({
