@@ -1,6 +1,6 @@
 import { eq, and, gte, lte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, bookings, InsertBooking } from "../drizzle/schema";
+import { InsertUser, users, bookings, InsertBooking, settings, InsertSetting } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -214,4 +214,29 @@ export async function getAvailableSlots(bookingDate: Date) {
     );
 
   return occupiedSlots.map(slot => slot.bookingTime);
+}
+
+// Settings queries
+export async function getSettings() {
+  const db = await getDb();
+  if (!db) {
+    return null;
+  }
+
+  const result = await db.select().from(settings).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function updateSettings(setting: Partial<InsertSetting>) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  const existing = await getSettings();
+  if (existing) {
+    return db.update(settings).set(setting).where(eq(settings.id, existing.id));
+  } else {
+    return db.insert(settings).values(setting as InsertSetting);
+  }
 }

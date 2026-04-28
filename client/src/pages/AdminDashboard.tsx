@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { ChevronLeft, ChevronRight, Trash2, CheckCircle2, Clock, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Trash2, CheckCircle2, Clock, X, Settings } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { ro } from "date-fns/locale";
+import { useLocation } from "wouter";
 
 const TIME_SLOTS = [
   "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
@@ -18,6 +19,7 @@ const TIME_SLOTS = [
 
 export default function AdminDashboard() {
   const { user, loading: authLoading } = useAuth();
+  const [, setLocation] = useLocation();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
 
@@ -54,9 +56,20 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Panou Admin - Frizeria 9</h1>
-          <p className="text-muted-foreground">Gestionează programările clienților în timp real</p>
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground mb-2">Panou Admin - Frizeria 9</h1>
+            <p className="text-muted-foreground">Gestionează programările clienților în timp real</p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setLocation("/admin/settings")}
+            className="gap-2"
+          >
+            <Settings className="w-4 h-4" />
+            Setări
+          </Button>
         </div>
 
         {/* Calendar Navigation */}

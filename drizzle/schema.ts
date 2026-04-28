@@ -44,3 +44,19 @@ export const bookings = mysqlTable("bookings", {
 
 export type Booking = typeof bookings.$inferSelect;
 export type InsertBooking = typeof bookings.$inferInsert;
+
+/**
+ * Settings table for storing business configuration
+ */
+export const settings = mysqlTable("settings", {
+  id: int("id").autoincrement().primaryKey(),
+  // Business hours (JSON format: {mon: {start: "08:00", end: "18:00"}, ...})
+  businessHours: text("businessHours"),
+  // Service prices (JSON format: {tuns: 40, barbierit: 35, pachet_complet: 65})
+  servicePrices: text("servicePrices"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Setting = typeof settings.$inferSelect;
+export type InsertSetting = typeof settings.$inferInsert;

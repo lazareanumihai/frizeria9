@@ -1,0 +1,271 @@
+import { useState, useEffect } from "react";
+import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { ChevronLeft } from "lucide-react";
+import { useLocation } from "wouter";
+
+const DAYS = ["Luni", "Marți", "Miercuri", "Joi", "Vineri", "Sâmbătă", "Duminică"];
+const DAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+
+interface BusinessHours {
+  [key: string]: { start: string; end: string } | null;
+}
+
+interface ServicePrices {
+  tuns: number;
+  barbierit: number;
+  pachet_complet: number;
+}
+
+export default function SettingsPage() {
+  const { user, loading: authLoading } = useAuth();
+  const [, setLocation] = useLocation();
+  const [businessHours, setBusinessHours] = useState<BusinessHours>({
+    mon: { start: "08:00", end: "18:00" },
+    tue: { start: "08:00", end: "18:00" },
+    wed: { start: "08:00", end: "18:00" },
+    thu: { start: "08:00", end: "18:00" },
+    fri: { start: "08:00", end: "18:00" },
+    sat: { start: "08:00", end: "18:00" },
+    sun: null,
+  });
+
+  const [servicePrices, setServicePrices] = useState<ServicePrices>({
+    tuns: 40,
+    barbierit: 35,
+    pachet_complet: 65,
+  });
+
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Redirect if not admin
+  if (!authLoading && (!user || user.role !== "admin")) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Card className="w-96">
+          <CardHeader>
+            <CardTitle>Acces Neautorizat</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Doar administratorii pot accesa setările.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Se încarcă...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const { data: settings } = trpc.settings.get.useQuery();
+  const updateSettingsMutation = trpc.settings.update.useMutation();
+
+  // Load settings from database when available
+  useEffect(() => {
+    if (settings?.businessHours) {
+      try {
+        setBusinessHours(JSON.parse(settings.businessHours));
+      } catch (e) {
+        console.error("Failed to parse business hours:", e);
+      }
+    }
+    if (settings?.servicePrices) {
+      try {
+        setServicePrices(JSON.parse(settings.servicePrices));
+      } catch (e) {
+        console.error("Failed to parse service prices:", e);
+      }
+    }
+  }, [settings]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await updateSettingsMutation.mutateAsync({
+        businessHours: JSON.stringify(businessHours),
+        servicePrices: JSON.stringify(servicePrices),
+      });
+      toast.success("Setări salvate cu succes!");
+    } catch (error) {
+      toast.error("Eroare la salvarea setărilor");
+      console.error(error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleBusinessHourChange = (
+    day: string,
+    field: "start" | "end",
+    value: string
+  ) => {
+    if (value === "") {
+      // Disable this day
+      setBusinessHours((prev) => ({
+        ...prev,
+        [day]: null,
+      }));
+    } else {
+      setBusinessHours((prev) => ({
+        ...prev,
+        [day]: {
+          ...(prev[day] || { start: "08:00", end: "18:00" }),
+          [field]: value,
+        },
+      }));
+    }
+  };
+
+  const handlePriceChange = (service: keyof ServicePrices, value: string) => {
+    const numValue = parseFloat(value) || 0;
+    setServicePrices((prev) => ({
+      ...prev,
+      [service]: numValue,
+    }));
+  };
+
+  return (
+    <div className="min-h-screen bg-background p-4 md:p-8">
+      <div className="max-w-2xl mx-auto">
+        {/* Header */}
+        <div className="mb-8 flex items-center gap-4">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setLocation("/admin")}
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Setări</h1>
+            <p className="text-muted-foreground">Configurează orele de lucru și prețurile</p>
+          </div>
+        </div>
+
+        {/* Business Hours Section */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Program de Lucru</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {DAY_KEYS.map((dayKey, index) => (
+              <div key={dayKey} className="grid grid-cols-3 gap-4 items-end">
+                <Label className="text-sm font-medium">{DAYS[index]}</Label>
+                <div>
+                  <Label className="text-xs text-muted-foreground">De la</Label>
+                  <Input
+                    type="time"
+                    value={businessHours[dayKey]?.start || "08:00"}
+                    onChange={(e) =>
+                      handleBusinessHourChange(dayKey, "start", e.target.value)
+                    }
+                    disabled={businessHours[dayKey] === null}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Până la</Label>
+                  <Input
+                    type="time"
+                    value={businessHours[dayKey]?.end || "18:00"}
+                    onChange={(e) =>
+                      handleBusinessHourChange(dayKey, "end", e.target.value)
+                    }
+                    disabled={businessHours[dayKey] === null}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        {/* Service Prices Section */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Prețuri Servicii</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="tuns" className="text-sm font-medium">
+                  Tuns (RON)
+                </Label>
+                <Input
+                  id="tuns"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={servicePrices.tuns}
+                  onChange={(e) => handlePriceChange("tuns", e.target.value)}
+                  className="mt-2"
+                />
+              </div>
+              <div>
+                <Label htmlFor="barbierit" className="text-sm font-medium">
+                  Bărbierit (RON)
+                </Label>
+                <Input
+                  id="barbierit"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={servicePrices.barbierit}
+                  onChange={(e) => handlePriceChange("barbierit", e.target.value)}
+                  className="mt-2"
+                />
+              </div>
+              <div className="col-span-2">
+                <Label htmlFor="pachet" className="text-sm font-medium">
+                  Pachet Complet (RON)
+                </Label>
+                <Input
+                  id="pachet"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={servicePrices.pachet_complet}
+                  onChange={(e) => handlePriceChange("pachet_complet", e.target.value)}
+                  className="mt-2"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Save Button */}
+        <div className="flex gap-3">
+          <Button
+            onClick={handleSave}
+            disabled={isSaving || updateSettingsMutation.isPending}
+            className="flex-1"
+          >
+            {isSaving || updateSettingsMutation.isPending ? "Se salvează..." : "Salvează Setări"}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setLocation("/admin")}
+            className="flex-1"
+          >
+            Anulează
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}

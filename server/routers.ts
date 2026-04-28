@@ -3,7 +3,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, adminProcedure } from "./_core/trpc";
 import { z } from "zod";
-import { createBooking, getBookingsByDate, getAllBookings, updateBookingStatus, deleteBooking, isTimeSlotAvailable, getAvailableSlots } from "./db";
+import { createBooking, getBookingsByDate, getAllBookings, updateBookingStatus, deleteBooking, isTimeSlotAvailable, getAvailableSlots, getSettings, updateSettings } from "./db";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -77,6 +77,22 @@ export const appRouter = router({
       .input(z.object({ bookingDate: z.date() }))
       .query(async ({ input }) => {
         return getAvailableSlots(input.bookingDate);
+      }),
+  }),
+
+  settings: router({
+    get: publicProcedure.query(async () => {
+      return getSettings();
+    }),
+    update: adminProcedure
+      .input(
+        z.object({
+          businessHours: z.string().optional(),
+          servicePrices: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        return updateSettings(input);
       }),
   }),
 });
