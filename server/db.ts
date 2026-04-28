@@ -106,10 +106,10 @@ export async function getBookingsByDate(date: Date) {
     return [];
   }
 
-  const startOfDay = new Date(date);
-  startOfDay.setHours(0, 0, 0, 0);
-  const endOfDay = new Date(date);
-  endOfDay.setHours(23, 59, 59, 999);
+  // Normalize to UTC midnight to avoid timezone issues
+  const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const startOfDay = new Date(Date.UTC(dateOnly.getFullYear(), dateOnly.getMonth(), dateOnly.getDate(), 0, 0, 0, 0));
+  const endOfDay = new Date(Date.UTC(dateOnly.getFullYear(), dateOnly.getMonth(), dateOnly.getDate(), 23, 59, 59, 999));
 
   const result = await db
     .select()
@@ -172,10 +172,10 @@ export async function isTimeSlotAvailable(bookingDate: Date, bookingTime: string
     return true;
   }
 
-  const startOfDay = new Date(bookingDate);
-  startOfDay.setHours(0, 0, 0, 0);
-  const endOfDay = new Date(bookingDate);
-  endOfDay.setHours(23, 59, 59, 999);
+  // Normalize to UTC midnight to avoid timezone issues
+  const dateOnly = new Date(bookingDate.getFullYear(), bookingDate.getMonth(), bookingDate.getDate());
+  const startOfDay = new Date(Date.UTC(dateOnly.getFullYear(), dateOnly.getMonth(), dateOnly.getDate(), 0, 0, 0, 0));
+  const endOfDay = new Date(Date.UTC(dateOnly.getFullYear(), dateOnly.getMonth(), dateOnly.getDate(), 23, 59, 59, 999));
 
   const existingBookings = await db
     .select()
@@ -198,10 +198,10 @@ export async function getAvailableSlots(bookingDate: Date) {
     return [];
   }
 
-  const startOfDay = new Date(bookingDate);
-  startOfDay.setHours(0, 0, 0, 0);
-  const endOfDay = new Date(bookingDate);
-  endOfDay.setHours(23, 59, 59, 999);
+  // Normalize to UTC midnight to avoid timezone issues
+  const dateOnly = new Date(bookingDate.getFullYear(), bookingDate.getMonth(), bookingDate.getDate());
+  const startOfDay = new Date(Date.UTC(dateOnly.getFullYear(), dateOnly.getMonth(), dateOnly.getDate(), 0, 0, 0, 0));
+  const endOfDay = new Date(Date.UTC(dateOnly.getFullYear(), dateOnly.getMonth(), dateOnly.getDate(), 23, 59, 59, 999));
 
   const occupiedSlots = await db
     .select({ bookingTime: bookings.bookingTime })
