@@ -1,14 +1,20 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { ChevronLeft, ChevronRight, Trash2, CheckCircle2, Clock, X } from "lucide-react";
-import { format, addDays, startOfDay } from "date-fns";
+import { format, addDays } from "date-fns";
 import { ro } from "date-fns/locale";
+
+const TIME_SLOTS = [
+  "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
+  "11:00", "11:30", "12:00", "12:30", "13:00", "13:30",
+  "14:00", "14:30", "15:00", "15:30", "16:00", "16:30",
+  "17:00", "17:30",
+];
 
 export default function AdminDashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -78,8 +84,18 @@ export default function AdminDashboard() {
           </Button>
         </div>
 
-        {/* Bookings List */}
-        <BookingsList selectedDate={selectedDate} onDeleteConfirm={setDeleteConfirm} />
+        {/* Split Layout: List + Visual Schedule */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left: Bookings List */}
+          <div className="lg:col-span-1">
+            <BookingsList selectedDate={selectedDate} onDeleteConfirm={setDeleteConfirm} />
+          </div>
+
+          {/* Right: Visual Schedule Grid */}
+          <div className="lg:col-span-2">
+            <VisualSchedule selectedDate={selectedDate} />
+          </div>
+        </div>
 
         {/* Delete Confirmation Dialog */}
         <AlertDialog open={deleteConfirm !== null} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
@@ -130,9 +146,11 @@ function BookingsList({
 
   if (isLoading) {
     return (
-      <div className="flex justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
+      <Card>
+        <CardContent className="py-8 flex justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        </CardContent>
+      </Card>
     );
   }
 
@@ -147,126 +165,178 @@ function BookingsList({
   }
 
   return (
-    <div className="space-y-4">
-      {bookings.map((booking) => (
-        <Card key={booking.id} className="hover:border-primary/50 transition-colors">
-          <CardContent className="p-6">
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Left side - Client info */}
+    <Card className="sticky top-4">
+      <CardHeader>
+        <CardTitle className="text-lg">Programări ({bookings.length})</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3 max-h-[600px] overflow-y-auto">
+        {bookings.map((booking) => (
+          <div key={booking.id} className="p-3 border border-border rounded-lg hover:bg-muted/50 transition-colors">
+            <div className="flex items-start justify-between gap-2 mb-2">
               <div>
-                <div className="mb-4">
-                  <p className="text-sm text-muted-foreground mb-1">Nume client</p>
-                  <p className="text-lg font-semibold text-foreground">{booking.clientName}</p>
-                </div>
-                <div className="mb-4">
-                  <p className="text-sm text-muted-foreground mb-1">Telefon</p>
-                  <a
-                    href={`tel:${booking.clientPhone}`}
-                    className="text-primary hover:underline font-medium"
-                  >
-                    {booking.clientPhone}
-                  </a>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Serviciu</p>
-                  <p className="font-medium text-foreground">
-                    {booking.serviceType === "tuns"
-                      ? "Tuns"
-                      : booking.serviceType === "barbierit"
-                      ? "Bărbierit"
-                      : "Pachet Complet"}
-                    {booking.price && ` - ${booking.price} RON`}
-                  </p>
-                </div>
+                <p className="font-semibold text-sm text-foreground">{booking.clientName}</p>
+                <p className="text-xs text-muted-foreground">{booking.bookingTime}</p>
               </div>
-
-              {/* Right side - Time and actions */}
-              <div className="flex flex-col justify-between">
-                <div>
-                  <div className="mb-4">
-                    <p className="text-sm text-muted-foreground mb-1">Ora</p>
-                    <p className="text-2xl font-bold text-primary">{booking.bookingTime}</p>
-                  </div>
-                  <div className="mb-4">
-                    <p className="text-sm text-muted-foreground mb-2">Status</p>
-                    <StatusBadge status={booking.status} />
-                  </div>
-                </div>
-
-                {/* Action buttons */}
-                <div className="flex gap-2 flex-wrap">
-                  {booking.status !== "confirmed" && (
-                    <Button
-                      size="sm"
-                      variant="default"
-                      onClick={() =>
-                        updateStatusMutation.mutate({
-                          bookingId: booking.id,
-                          status: "confirmed",
-                        })
-                      }
-                      disabled={updateStatusMutation.isPending}
-                    >
-                      <CheckCircle2 className="w-4 h-4 mr-1" />
-                      Confirma
-                    </Button>
-                  )}
-                  {booking.status !== "completed" && booking.status !== "cancelled" && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        updateStatusMutation.mutate({
-                          bookingId: booking.id,
-                          status: "completed",
-                        })
-                      }
-                      disabled={updateStatusMutation.isPending}
-                    >
-                      <CheckCircle2 className="w-4 h-4 mr-1" />
-                      Finalizează
-                    </Button>
-                  )}
-                  {booking.status !== "cancelled" && (
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() =>
-                        updateStatusMutation.mutate({
-                          bookingId: booking.id,
-                          status: "cancelled",
-                        })
-                      }
-                      disabled={updateStatusMutation.isPending}
-                    >
-                      <X className="w-4 h-4 mr-1" />
-                      Anulează
-                    </Button>
-                  )}
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => {
-                      deleteMutation.mutate({ bookingId: booking.id });
-                    }}
-                    disabled={deleteMutation.isPending}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
+              <StatusBadge status={booking.status} />
             </div>
 
-            {booking.notes && (
-              <div className="mt-4 pt-4 border-t border-border">
-                <p className="text-sm text-muted-foreground mb-1">Note</p>
-                <p className="text-sm text-foreground">{booking.notes}</p>
+            <p className="text-xs text-muted-foreground mb-2">
+              {booking.serviceType === "tuns"
+                ? "Tuns"
+                : booking.serviceType === "barbierit"
+                ? "Bărbierit"
+                : "Pachet Complet"}
+            </p>
+
+            <div className="flex gap-1 flex-wrap">
+              {booking.status !== "confirmed" && (
+                <Button
+                  size="sm"
+                  variant="default"
+                  className="h-7 text-xs px-2"
+                  onClick={() =>
+                    updateStatusMutation.mutate({
+                      bookingId: booking.id,
+                      status: "confirmed",
+                    })
+                  }
+                  disabled={updateStatusMutation.isPending}
+                >
+                  Confirma
+                </Button>
+              )}
+              {booking.status !== "completed" && booking.status !== "cancelled" && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs px-2"
+                  onClick={() =>
+                    updateStatusMutation.mutate({
+                      bookingId: booking.id,
+                      status: "completed",
+                    })
+                  }
+                  disabled={updateStatusMutation.isPending}
+                >
+                  Finalizează
+                </Button>
+              )}
+              {booking.status !== "cancelled" && (
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  className="h-7 text-xs px-2"
+                  onClick={() =>
+                    updateStatusMutation.mutate({
+                      bookingId: booking.id,
+                      status: "cancelled",
+                    })
+                  }
+                  disabled={updateStatusMutation.isPending}
+                >
+                  Anulează
+                </Button>
+              )}
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 text-xs px-1"
+                onClick={() => {
+                  deleteMutation.mutate({ bookingId: booking.id });
+                }}
+                disabled={deleteMutation.isPending}
+              >
+                <Trash2 className="w-3 h-3" />
+              </Button>
+            </div>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
+function VisualSchedule({ selectedDate }: { selectedDate: Date }) {
+  const { data: bookings, isLoading } = trpc.bookings.getByDate.useQuery({
+    date: selectedDate,
+  });
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="py-12 flex justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Create a map of occupied slots
+  const occupiedMap = new Map<string, any>();
+  if (bookings) {
+    bookings.forEach((booking) => {
+      occupiedMap.set(booking.bookingTime, booking);
+    });
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg">Orar Zilei</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-4 gap-2">
+          {TIME_SLOTS.map((slot) => {
+            const booking = occupiedMap.get(slot);
+            const isOccupied = !!booking;
+
+            return (
+              <div
+                key={slot}
+                className={`p-3 rounded-lg border-2 transition-all ${
+                  isOccupied
+                    ? "border-red-500 bg-red-500/10"
+                    : "border-green-500 bg-green-500/10"
+                }`}
+              >
+                <p className="text-sm font-semibold text-foreground text-center mb-1">
+                  {slot}
+                </p>
+                {isOccupied ? (
+                  <div className="text-xs text-center">
+                    <p className="font-medium text-red-700 truncate">
+                      {booking.clientName.split(" ")[0]}
+                    </p>
+                    <p className="text-red-600 text-xs">
+                      {booking.serviceType === "tuns"
+                        ? "Tuns"
+                        : booking.serviceType === "barbierit"
+                        ? "Bărbierit"
+                        : "Pachet"}
+                    </p>
+                    <StatusBadgeSmall status={booking.status} />
+                  </div>
+                ) : (
+                  <p className="text-xs text-center text-green-600 font-medium">Liber</p>
+                )}
               </div>
-            )}
-          </CardContent>
-        </Card>
-      ))}
-    </div>
+            );
+          })}
+        </div>
+
+        {/* Legend */}
+        <div className="mt-6 pt-4 border-t border-border flex gap-6 justify-center">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded border-2 border-green-500 bg-green-500/10" />
+            <span className="text-xs text-muted-foreground">Liber</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded border-2 border-red-500 bg-red-500/10" />
+            <span className="text-xs text-muted-foreground">Ocupat</span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -297,9 +367,31 @@ function StatusBadge({ status }: { status: string }) {
   const variant = variants[status] || variants.pending;
 
   return (
-    <Badge className={`${variant.className} border`}>
+    <Badge className={`${variant.className} border text-xs`}>
       {variant.icon}
       <span className="ml-1">{variant.label}</span>
     </Badge>
+  );
+}
+
+function StatusBadgeSmall({ status }: { status: string }) {
+  const variants: Record<string, string> = {
+    pending: "bg-yellow-600 text-yellow-100",
+    confirmed: "bg-blue-600 text-blue-100",
+    completed: "bg-green-600 text-green-100",
+    cancelled: "bg-red-600 text-red-100",
+  };
+
+  const labels: Record<string, string> = {
+    pending: "Aștept",
+    confirmed: "Conf.",
+    completed: "Finalizat",
+    cancelled: "Anulat",
+  };
+
+  return (
+    <span className={`text-xs px-1.5 py-0.5 rounded ${variants[status] || variants.pending}`}>
+      {labels[status] || "Aștept"}
+    </span>
   );
 }
