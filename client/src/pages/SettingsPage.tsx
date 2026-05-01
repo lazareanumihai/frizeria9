@@ -23,8 +23,10 @@ interface ServicePrices {
 }
 
 export default function SettingsPage() {
+  // All hooks MUST be called unconditionally at the top
   const { user, loading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
+  
   const [businessHours, setBusinessHours] = useState<BusinessHours>({
     mon: { start: "08:00", end: "18:00" },
     tue: { start: "08:00", end: "18:00" },
@@ -44,35 +46,7 @@ export default function SettingsPage() {
   const [closedDays, setClosedDays] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Redirect if not admin
-  if (!authLoading && (!user || user.role !== "admin")) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="w-96">
-          <CardHeader>
-            <CardTitle>Acces Neautorizat</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Doar administratorii pot accesa setările.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Se încarcă...</p>
-        </div>
-      </div>
-    );
-  }
-
+  // Query hooks MUST be called unconditionally
   const { data: settings } = trpc.settings.get.useQuery();
   const updateSettingsMutation = trpc.settings.update.useMutation();
 
@@ -147,6 +121,35 @@ export default function SettingsPage() {
       [service]: numValue,
     }));
   };
+
+  // Redirect if not admin - AFTER all hooks
+  if (!authLoading && (!user || user.role !== "admin")) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Card className="w-96">
+          <CardHeader>
+            <CardTitle>Acces Neautorizat</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Doar administratorii pot accesa setările.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Se încarcă...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
