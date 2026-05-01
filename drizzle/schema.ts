@@ -54,6 +54,8 @@ export const settings = mysqlTable("settings", {
   businessHours: text("businessHours"),
   // Service prices (JSON format: {tuns: 40, barbierit: 35, pachet_complet: 65})
   servicePrices: text("servicePrices"),
+  // Closed days (JSON format: ["2026-01-01", "2026-12-25", ...])
+  closedDays: text("closedDays"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

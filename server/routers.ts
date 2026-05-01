@@ -89,6 +89,7 @@ export const appRouter = router({
         z.object({
           businessHours: z.string().optional(),
           servicePrices: z.string().optional(),
+          closedDays: z.string().optional(),
         })
       )
       .mutation(async ({ input }) => {

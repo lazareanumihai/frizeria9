@@ -41,6 +41,7 @@ export default function SettingsPage() {
     pachet_complet: 65,
   });
 
+  const [closedDays, setClosedDays] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
   // Redirect if not admin
@@ -91,6 +92,13 @@ export default function SettingsPage() {
         console.error("Failed to parse service prices:", e);
       }
     }
+    if (settings?.closedDays) {
+      try {
+        setClosedDays(JSON.parse(settings.closedDays));
+      } catch (e) {
+        console.error("Failed to parse closed days:", e);
+      }
+    }
   }, [settings]);
 
   const handleSave = async () => {
@@ -99,6 +107,7 @@ export default function SettingsPage() {
       await updateSettingsMutation.mutateAsync({
         businessHours: JSON.stringify(businessHours),
         servicePrices: JSON.stringify(servicePrices),
+        closedDays: JSON.stringify(closedDays),
       });
       toast.success("Setări salvate cu succes!");
     } catch (error) {
@@ -244,6 +253,84 @@ export default function SettingsPage() {
                   className="mt-2"
                 />
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Closed Days Section */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Zile Libere (Sărbători, Concediu)</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              <div>
+                <Label htmlFor="newClosedDay" className="text-sm font-medium">
+                  Adaugă o zi liberă
+                </Label>
+                <div className="flex gap-2 mt-2">
+                  <Input
+                    id="newClosedDay"
+                    type="date"
+                    placeholder="Selectează data"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        const input = e.currentTarget;
+                        if (input.value && !closedDays.includes(input.value)) {
+                          setClosedDays([...closedDays, input.value].sort());
+                          input.value = "";
+                        }
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={(e) => {
+                      const input = (e.currentTarget.previousElementSibling as HTMLInputElement);
+                      if (input.value && !closedDays.includes(input.value)) {
+                        setClosedDays([...closedDays, input.value].sort());
+                        input.value = "";
+                      }
+                    }}
+                    className="whitespace-nowrap"
+                  >
+                    Adaugă
+                  </Button>
+                </div>
+              </div>
+
+              {closedDays.length > 0 && (
+                <div>
+                  <Label className="text-sm font-medium mb-2 block">Zile libere marcate:</Label>
+                  <div className="space-y-2">
+                    {closedDays.map((day) => (
+                      <div
+                        key={day}
+                        className="flex items-center justify-between bg-muted p-3 rounded border border-border"
+                      >
+                        <span className="text-sm">
+                          {new Date(day + "T00:00:00").toLocaleDateString("ro-RO", {
+                            weekday: "long",
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setClosedDays(closedDays.filter((d) => d !== day))}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          Șterge
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

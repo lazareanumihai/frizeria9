@@ -74,6 +74,20 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Query settings to get closed days
+  const { data: settings } = trpc.settings.get.useQuery();
+  const [closedDays, setClosedDays] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (settings?.closedDays) {
+      try {
+        setClosedDays(JSON.parse(settings.closedDays));
+      } catch (e) {
+        console.error("Failed to parse closed days:", e);
+      }
+    }
+  }, [settings]);
+
   // Query occupied slots for selected date
   const { data: occupiedSlots = [] } = trpc.bookings.getOccupiedSlots.useQuery(
     { bookingDate: selectedDate || new Date() },
@@ -102,6 +116,11 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
     const dayOfWeek = date.getDay(); // 0 = Sunday
     if (dayOfWeek === 0) return true; // Sunday closed
     if (date < new Date(today.getFullYear(), today.getMonth(), today.getDate())) return true;
+    
+    // Check if date is in closed days
+    const dateStr = date.toISOString().split('T')[0];
+    if (closedDays.includes(dateStr)) return true;
+    
     return false;
   };
 
