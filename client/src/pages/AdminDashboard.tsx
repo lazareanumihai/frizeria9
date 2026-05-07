@@ -238,7 +238,7 @@ function BookingsList({
                   Finalizează
                 </Button>
               )}
-              {booking.status !== "cancelled" && (
+              {booking.status !== "cancelled" && booking.status !== "completed" && (
                 <Button
                   size="sm"
                   variant="destructive"
@@ -254,17 +254,19 @@ function BookingsList({
                   Anulează
                 </Button>
               )}
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-7 text-xs px-1"
-                onClick={() => {
-                  deleteMutation.mutate({ bookingId: booking.id });
-                }}
-                disabled={deleteMutation.isPending}
-              >
-                <Trash2 className="w-3 h-3" />
-              </Button>
+              {booking.status !== "completed" && booking.status !== "cancelled" && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 text-xs px-1"
+                  onClick={() => {
+                    deleteMutation.mutate({ bookingId: booking.id });
+                  }}
+                  disabled={deleteMutation.isPending}
+                >
+                  <Trash2 className="w-3 h-3" />
+                </Button>
+              )}
             </div>
           </div>
         ))}
