@@ -20,7 +20,11 @@ const TIME_SLOTS = [
 export default function AdminDashboard() {
   const { user, loading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  
+  // Initialize with today's date at midnight (local time)
+  const today = new Date();
+  const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const [selectedDate, setSelectedDate] = useState(todayMidnight);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
 
   // Redirect if not admin
