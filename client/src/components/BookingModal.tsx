@@ -132,6 +132,22 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
     return occupiedSlots.includes(slot);
   };
 
+  const isTimeSlotInPast = (slot: string) => {
+    if (!selectedDate) return false;
+    const now = new Date();
+    const isToday = selectedDate.getFullYear() === now.getFullYear() &&
+      selectedDate.getMonth() === now.getMonth() &&
+      selectedDate.getDate() === now.getDate();
+    
+    if (!isToday) return false;
+    
+    const [hours, minutes] = slot.split(':').map(Number);
+    const slotTime = new Date();
+    slotTime.setHours(hours, minutes, 0, 0);
+    
+    return slotTime <= now;
+  };
+
   const handleSubmit = async () => {
     if (!name.trim() || !phone.trim()) {
       toast.error("Te rugăm să completezi numele și numărul de telefon.");
@@ -446,20 +462,23 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
               <div className="grid grid-cols-4 gap-2">
                 {TIME_SLOTS.map((slot) => {
                   const occupied = isTimeSlotOccupied(slot);
+                  const inPast = isTimeSlotInPast(slot);
                   const selected = selectedTime === slot;
+                  const disabled = occupied || inPast;
                   return (
                     <button
                       key={slot}
-                      onClick={() => !occupied && setSelectedTime(slot)}
-                      disabled={occupied}
+                      onClick={() => !disabled && setSelectedTime(slot)}
+                      disabled={disabled}
                       className={`py-2.5 text-sm border transition-all duration-200 ${
                         selected
                           ? "border-gold bg-gold/10 text-gold font-semibold"
-                          : occupied
+                          : disabled
                           ? "border-red-500/50 bg-red-500/10 text-red-400 cursor-not-allowed"
                           : "border-green-500/50 bg-green-500/10 text-green-400 hover:border-green-500"
                       }`}
                       style={{ fontFamily: "'Raleway', sans-serif" }}
+                      title={inPast ? "Ora a trecut deja" : occupied ? "Ora ocupata" : ""}
                     >
                       {slot}
                     </button>
