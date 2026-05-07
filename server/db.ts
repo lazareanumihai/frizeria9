@@ -96,7 +96,14 @@ export async function createBooking(booking: InsertBooking) {
     throw new Error("Database not available");
   }
 
-  const result = await db.insert(bookings).values(booking);
+  // Normalize booking date to UTC midnight to avoid timezone issues
+  const date = new Date(booking.bookingDate);
+  const normalizedDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0));
+  
+  const result = await db.insert(bookings).values({
+    ...booking,
+    bookingDate: normalizedDate,
+  });
   return result;
 }
 
