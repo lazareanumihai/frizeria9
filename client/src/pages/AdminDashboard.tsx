@@ -206,7 +206,7 @@ function BookingsList({
             </p>
 
             <div className="flex gap-1 flex-wrap">
-              {booking.status !== "confirmed" && (
+              {booking.status === "pending" && (
                 <Button
                   size="sm"
                   variant="default"
@@ -222,7 +222,7 @@ function BookingsList({
                   Confirma
                 </Button>
               )}
-              {booking.status !== "completed" && booking.status !== "cancelled" && (
+              {booking.status === "confirmed" && (
                 <Button
                   size="sm"
                   variant="outline"
