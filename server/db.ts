@@ -1,6 +1,6 @@
 import { eq, and, gte, lte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, bookings, InsertBooking, settings, InsertSetting } from "../drizzle/schema";
+import { InsertUser, users, bookings, InsertBooking, settings, InsertSetting, services, InsertService, Service } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -246,4 +246,58 @@ export async function updateSettings(setting: Partial<InsertSetting>) {
   } else {
     return db.insert(settings).values(setting as InsertSetting);
   }
+}
+
+// Services queries
+export async function getAllServices() {
+  const db = await getDb();
+  if (!db) {
+    return [];
+  }
+
+  const result = await db
+    .select()
+    .from(services)
+    .where(eq(services.isActive, 1));
+
+  return result;
+}
+
+export async function createService(service: InsertService) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  const result = await db.insert(services).values(service);
+  return result;
+}
+
+export async function updateService(serviceId: number, service: Partial<InsertService>) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  const result = await db
+    .update(services)
+    .set(service)
+    .where(eq(services.id, serviceId));
+
+  return result;
+}
+
+export async function deleteService(serviceId: number) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  // Soft delete - mark as inactive
+  const result = await db
+    .update(services)
+    .set({ isActive: 0 })
+    .where(eq(services.id, serviceId));
+
+  return result;
 }

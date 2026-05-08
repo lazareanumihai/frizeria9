@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { ChevronLeft, ChevronRight, Trash2, CheckCircle2, Clock, X, Settings } from "lucide-react";
+import { ChevronLeft, ChevronRight, Trash2, CheckCircle2, Clock, X, Settings, Wrench } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { ro } from "date-fns/locale";
 import { useLocation } from "wouter";
@@ -65,15 +65,26 @@ export default function AdminDashboard() {
             <h1 className="text-3xl font-bold text-foreground mb-2">Panou Admin - Frizeria 9</h1>
             <p className="text-muted-foreground">Gestionează programările clienților în timp real</p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setLocation("/admin/settings")}
-            className="gap-2"
-          >
-            <Settings className="w-4 h-4" />
-            Setări
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setLocation("/admin/services")}
+              className="gap-2"
+            >
+              <Wrench className="w-4 h-4" />
+              Servicii
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setLocation("/admin/settings")}
+              className="gap-2"
+            >
+              <Settings className="w-4 h-4" />
+              Setări
+            </Button>
+          </div>
         </div>
 
         {/* Calendar Navigation */}

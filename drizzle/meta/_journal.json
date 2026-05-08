@@ -29,6 +29,13 @@
       "when": 1777372590301,
       "tag": "0003_green_katie_power",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1778159896189,
+      "tag": "0004_mighty_lifeguard",
+      "breakpoints": true
     }
   ]
 }

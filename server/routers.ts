@@ -3,7 +3,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, adminProcedure } from "./_core/trpc";
 import { z } from "zod";
-import { createBooking, getBookingsByDate, getAllBookings, updateBookingStatus, deleteBooking, isTimeSlotAvailable, getAvailableSlots, getSettings, updateSettings } from "./db";
+import { createBooking, getBookingsByDate, getAllBookings, updateBookingStatus, deleteBooking, isTimeSlotAvailable, getAvailableSlots, getSettings, updateSettings, getAllServices, createService, updateService, deleteService } from "./db";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -94,6 +94,49 @@ export const appRouter = router({
       )
       .mutation(async ({ input }) => {
         return updateSettings(input);
+      }),
+  }),
+
+  services: router({
+    getAll: publicProcedure.query(async () => {
+      return getAllServices();
+    }),
+    create: adminProcedure
+      .input(
+        z.object({
+          name: z.string().min(1),
+          price: z.string(),
+          duration: z.number().min(15),
+          description: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        return createService({
+          name: input.name,
+          price: input.price,
+          duration: input.duration,
+          description: input.description,
+          isActive: 1,
+        });
+      }),
+    update: adminProcedure
+      .input(
+        z.object({
+          serviceId: z.number(),
+          name: z.string().optional(),
+          price: z.string().optional(),
+          duration: z.number().optional(),
+          description: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const { serviceId, ...data } = input;
+        return updateService(serviceId, data);
+      }),
+    delete: adminProcedure
+      .input(z.object({ serviceId: z.number() }))
+      .mutation(async ({ input }) => {
+        return deleteService(input.serviceId);
       }),
   }),
 });
