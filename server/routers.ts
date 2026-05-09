@@ -25,7 +25,7 @@ export const appRouter = router({
         z.object({
           clientName: z.string().min(1),
           clientPhone: z.string().min(1),
-          serviceType: z.enum(["tuns", "barbierit", "pachet_complet"]),
+          serviceType: z.string(),
           bookingDate: z.date(),
           bookingTime: z.string(),
           notes: z.string().optional(),
@@ -38,14 +38,13 @@ export const appRouter = router({
           throw new Error("Ora selectata este deja ocupata. Te rugam sa alegi o alta ora.");
         }
         
-        const price = input.serviceType === "tuns" ? 40 : input.serviceType === "barbierit" ? 35 : 65;
         return createBooking({
           clientName: input.clientName,
           clientPhone: input.clientPhone,
           serviceType: input.serviceType,
           bookingDate: input.bookingDate,
           bookingTime: input.bookingTime,
-          price: price.toString(),
+          price: "0",
           status: "pending",
           notes: input.notes,
         });

@@ -32,7 +32,7 @@ export const bookings = mysqlTable("bookings", {
   id: int("id").autoincrement().primaryKey(),
   clientName: varchar("clientName", { length: 255 }).notNull(),
   clientPhone: varchar("clientPhone", { length: 20 }).notNull(),
-  serviceType: mysqlEnum("serviceType", ["tuns", "barbierit", "pachet_complet"]).notNull(),
+  serviceType: varchar("serviceType", { length: 255 }).notNull(),
   bookingDate: timestamp("bookingDate").notNull(),
   bookingTime: varchar("bookingTime", { length: 5 }).notNull(), // HH:MM format
   status: mysqlEnum("status", ["pending", "confirmed", "completed", "cancelled"]).default("pending").notNull(),

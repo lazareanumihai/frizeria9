@@ -14,30 +14,6 @@ interface BookingModalProps {
   onClose: () => void;
 }
 
-const SERVICES = [
-  {
-    id: "tuns",
-    name: "Tuns",
-    duration: "45 min",
-    price: "40 RON",
-    description: "Tuns profesional cu consultație și finisaj",
-  },
-  {
-    id: "barbierit",
-    name: "Bărbierit",
-    duration: "30 min",
-    price: "35 RON",
-    description: "Bărbierit clasic cu lamă dreaptă și prosop cald",
-  },
-  {
-    id: "pachet_complet",
-    name: "Tuns + Bărbierit",
-    duration: "75 min",
-    price: "65 RON",
-    description: "Pachet complet — tuns și bărbierit",
-  },
-];
-
 const TIME_SLOTS = [
   "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
   "11:00", "11:30", "12:00", "12:30", "13:00", "13:30",
@@ -64,7 +40,7 @@ const DAY_NAMES = ["Lu", "Ma", "Mi", "Jo", "Vi", "Sâ", "Du"];
 export default function BookingModal({ open, onClose }: BookingModalProps) {
   const today = new Date();
   const [step, setStep] = useState(1);
-  const [selectedService, setSelectedService] = useState<string | null>(null);
+  const [selectedService, setSelectedService] = useState<number | null>(null);
   const [calendarMonth, setCalendarMonth] = useState(today.getMonth());
   const [calendarYear, setCalendarYear] = useState(today.getFullYear());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -74,6 +50,9 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Query services from database
+  const { data: services = [] } = trpc.services.getAll.useQuery();
+  
   // Query settings to get closed days
   const { data: settings } = trpc.settings.get.useQuery();
   const [closedDays, setClosedDays] = useState<string[]>([]);
@@ -148,39 +127,33 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
     return slotTime <= now;
   };
 
-  const handleSubmit = async () => {
-    if (!name.trim() || !phone.trim()) {
-      toast.error("Te rugăm să completezi numele și numărul de telefon.");
-      return;
-    }
-    if (!/^[0-9]{10}$/.test(phone.replace(/\s/g, ""))) {
-      toast.error("Numărul de telefon trebuie să aibă 10 cifre.");
-      return;
-    }
+  const getSelectedServiceDetails = () => {
+    return services.find(s => s.id === selectedService);
+  };
 
-    if (!selectedService || !selectedDate || !selectedTime) {
-      toast.error("Te rugăm să completezi toate câmpurile.");
+  const handleSubmit = async () => {
+    if (!selectedService || !selectedDate || !selectedTime || !name || !phone) {
+      toast.error("Completează toate câmpurile");
       return;
     }
 
     setIsSubmitting(true);
-
     try {
+      const service = getSelectedServiceDetails();
       await createBookingMutation.mutateAsync({
-        clientName: name,
-        clientPhone: phone,
-        serviceType: selectedService as "tuns" | "barbierit" | "pachet_complet",
+        serviceType: service?.name || "Serviciu",
         bookingDate: selectedDate,
         bookingTime: selectedTime,
+        clientName: name,
+        clientPhone: phone,
       });
-    } catch (error) {
-      // Error is handled by mutation's onError
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleClose = () => {
-    onClose();
-    setTimeout(() => {
+    if (submitted) {
       setStep(1);
       setSelectedService(null);
       setSelectedDate(null);
@@ -188,451 +161,284 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
       setName("");
       setPhone("");
       setSubmitted(false);
-      setIsSubmitting(false);
-    }, 300);
+      onClose();
+    } else {
+      onClose();
+    }
   };
 
-  const service = SERVICES.find((s) => s.id === selectedService);
-
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-        onClick={handleClose}
-      />
-
-      {/* Modal */}
-      <div
-        className="relative z-10 w-full max-w-lg bg-card border border-border shadow-2xl overflow-hidden"
-        style={{ maxHeight: "90vh", overflowY: "auto" }}
-      >
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+      <div className="bg-card border border-border rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-border">
-          <div className="flex items-center gap-3">
-            {step > 1 && !submitted && (
-              <button
-                onClick={() => setStep(step - 1)}
-                className="text-foreground/60 hover:text-gold transition-colors mr-1"
-              >
-                <ChevronLeft size={18} />
-              </button>
-            )}
-            <div>
-              <h3
-                className="text-xl font-bold"
-                style={{ fontFamily: "'Cormorant Garamond', serif" }}
-              >
-                {submitted ? "Confirmat!" : "Programare Online"}
-              </h3>
-              {!submitted && (
-                <p
-                  className="text-xs text-foreground/40 tracking-wider uppercase mt-0.5"
-                  style={{ fontFamily: "'Raleway', sans-serif" }}
-                >
-                  Pasul {step} din 4
-                </p>
-              )}
-            </div>
-          </div>
-          <button
-            onClick={handleClose}
-            className="text-foreground/50 hover:text-gold transition-colors"
-          >
-            <X size={20} />
+        <div className="sticky top-0 bg-card border-b border-border p-4 flex items-center justify-between">
+          <h2 className="text-xl font-bold text-foreground">Programează-te</h2>
+          <button onClick={handleClose} className="text-muted-foreground hover:text-foreground">
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Progress bar */}
-        {!submitted && (
-          <div className="h-0.5 bg-border">
-            <div
-              className="h-full bg-gold transition-all duration-500"
-              style={{ width: `${(step / 4) * 100}%` }}
-            />
-          </div>
-        )}
-
         {/* Content */}
         <div className="p-6">
-          {/* STEP 1 — Service */}
-          {step === 1 && (
-            <div>
-              <p
-                className="text-sm text-foreground/50 mb-5"
-                style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 300 }}
-              >
-                Alege serviciul dorit:
-              </p>
-              <div className="space-y-3">
-                {SERVICES.map((s) => (
-                  <button
-                    key={s.id}
-                    onClick={() => setSelectedService(s.id)}
-                    className={`w-full text-left p-4 border transition-all duration-200 ${
-                      selectedService === s.id
-                        ? "border-gold bg-gold/10"
-                        : "border-border hover:border-gold/40 bg-background/30"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-3">
-                        <Scissors
-                          size={16}
-                          className={`mt-0.5 shrink-0 ${selectedService === s.id ? "text-gold" : "text-foreground/40"}`}
-                        />
-                        <div>
-                          <div
-                            className="font-semibold text-sm"
-                            style={{ fontFamily: "'Raleway', sans-serif" }}
-                          >
-                            {s.name}
-                          </div>
-                          <div
-                            className="text-xs text-foreground/50 mt-0.5"
-                            style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 300 }}
-                          >
-                            {s.description}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right shrink-0 ml-4">
-                        <div
-                          className="text-xs text-gold font-semibold"
-                          style={{ fontFamily: "'Raleway', sans-serif" }}
-                        >
-                          {s.price}
-                        </div>
-                        <div
-                          className="text-xs text-foreground/40 mt-0.5"
-                          style={{ fontFamily: "'Raleway', sans-serif" }}
-                        >
-                          {s.duration}
-                        </div>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-              <button
-                onClick={() => selectedService && setStep(2)}
-                disabled={!selectedService}
-                className={`mt-6 w-full py-3.5 text-sm tracking-widest uppercase transition-all duration-300 ${
-                  selectedService
-                    ? "btn-gold"
-                    : "bg-muted text-foreground/30 cursor-not-allowed"
-                }`}
-                style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 600 }}
-              >
-                Continuă
-              </button>
-            </div>
-          )}
-
-          {/* STEP 2 — Date */}
-          {step === 2 && (
-            <div>
-              <p
-                className="text-sm text-foreground/50 mb-5"
-                style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 300 }}
-              >
-                Alege data:
-              </p>
-
-              {/* Calendar header */}
-              <div className="flex items-center justify-between mb-4">
-                <button
-                  onClick={() => {
-                    if (calendarMonth === 0) {
-                      setCalendarMonth(11);
-                      setCalendarYear(calendarYear - 1);
-                    } else {
-                      setCalendarMonth(calendarMonth - 1);
-                    }
-                  }}
-                  className="text-foreground/50 hover:text-gold transition-colors"
-                >
-                  <ChevronLeft size={18} />
-                </button>
-                <div
-                  className="text-sm font-semibold text-center flex-1"
-                  style={{ fontFamily: "'Raleway', sans-serif" }}
-                >
-                  {MONTH_NAMES[calendarMonth]} {calendarYear}
-                </div>
-                <button
-                  onClick={() => {
-                    if (calendarMonth === 11) {
-                      setCalendarMonth(0);
-                      setCalendarYear(calendarYear + 1);
-                    } else {
-                      setCalendarMonth(calendarMonth + 1);
-                    }
-                  }}
-                  className="text-foreground/50 hover:text-gold transition-colors"
-                >
-                  <ChevronRight size={18} />
-                </button>
-              </div>
-
-              {/* Day names */}
-              <div className="grid grid-cols-7 gap-1 mb-2">
-                {DAY_NAMES.map((d) => (
-                  <div
-                    key={d}
-                    className="text-center text-xs text-foreground/40 py-2"
-                    style={{ fontFamily: "'Raleway', sans-serif" }}
-                  >
-                    {d}
-                  </div>
-                ))}
-              </div>
-
-              {/* Calendar grid */}
-              <div className="grid grid-cols-7 gap-1">
-                {Array.from({ length: firstDay }).map((_, i) => (
-                  <div key={`empty-${i}`} />
-                ))}
-                {Array.from({ length: daysInMonth }).map((_, i) => {
-                  const day = i + 1;
-                  const date = new Date(calendarYear, calendarMonth, day);
-                  const disabled = isDateDisabled(day);
-                  const selected = selectedDate?.getDate() === day && selectedDate?.getMonth() === calendarMonth && selectedDate?.getFullYear() === calendarYear;
-                  return (
-                    <button
-                      key={day}
-                      onClick={() => !disabled && setSelectedDate(date)}
-                      disabled={disabled}
-                      className={`aspect-square flex items-center justify-center text-sm transition-all duration-200 ${
-                        selected
-                          ? "bg-gold text-background font-semibold"
-                          : disabled
-                          ? "text-foreground/20 cursor-not-allowed"
-                          : "hover:bg-gold/20 hover:text-gold text-foreground/80"
-                      }`}
-                      style={{ fontFamily: "'Raleway', sans-serif" }}
-                    >
-                      {day}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <p
-                className="text-xs text-foreground/30 mt-3 text-center"
-                style={{ fontFamily: "'Raleway', sans-serif" }}
-              >
-                Duminica suntem închiși
-              </p>
-
-              <button
-                onClick={() => selectedDate && setStep(3)}
-                disabled={!selectedDate}
-                className={`mt-5 w-full py-3.5 text-sm tracking-widest uppercase transition-all duration-300 ${
-                  selectedDate
-                    ? "btn-gold"
-                    : "bg-muted text-foreground/30 cursor-not-allowed"
-                }`}
-                style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 600 }}
-              >
-                Continuă
-                <ChevronRight size={16} className="inline ml-2" />
-              </button>
-            </div>
-          )}
-
-          {/* STEP 3 — Time */}
-          {step === 3 && (
-            <div>
-              <p
-                className="text-sm text-foreground/50 mb-1"
-                style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 300 }}
-              >
-                Alege ora:
-              </p>
-              {selectedDate && (
-                <p
-                  className="text-xs text-gold mb-5 flex items-center gap-1.5"
-                  style={{ fontFamily: "'Raleway', sans-serif" }}
-                >
-                  <Calendar size={12} />
-                  {formatDate(selectedDate)}
-                </p>
-              )}
-              <div className="grid grid-cols-4 gap-2">
-                {TIME_SLOTS.map((slot) => {
-                  const occupied = isTimeSlotOccupied(slot);
-                  const inPast = isTimeSlotInPast(slot);
-                  const selected = selectedTime === slot;
-                  const disabled = occupied || inPast;
-                  return (
-                    <button
-                      key={slot}
-                      onClick={() => !disabled && setSelectedTime(slot)}
-                      disabled={disabled}
-                      className={`py-2.5 text-sm border transition-all duration-200 ${
-                        selected
-                          ? "border-gold bg-gold/10 text-gold font-semibold"
-                          : disabled
-                          ? "border-red-500/50 bg-red-500/10 text-red-400 cursor-not-allowed"
-                          : "border-green-500/50 bg-green-500/10 text-green-400 hover:border-green-500"
-                      }`}
-                      style={{ fontFamily: "'Raleway', sans-serif" }}
-                      title={inPast ? "Ora a trecut deja" : occupied ? "Ora ocupata" : ""}
-                    >
-                      {slot}
-                    </button>
-                  );
-                })}
-              </div>
-              <button
-                onClick={() => selectedTime && setStep(4)}
-                disabled={!selectedTime}
-                className={`mt-6 w-full py-3.5 text-sm tracking-widest uppercase transition-all duration-300 ${
-                  selectedTime
-                    ? "btn-gold"
-                    : "bg-muted text-foreground/30 cursor-not-allowed"
-                }`}
-                style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 600 }}
-              >
-                Continuă
-                <ChevronRight size={16} className="inline ml-2" />
-              </button>
-            </div>
-          )}
-
-          {/* STEP 4 — Details */}
-          {step === 4 && !submitted && (
-            <div>
-              {/* Summary */}
-              <div className="border border-gold/20 bg-background/30 p-4 mb-6">
-                <p
-                  className="text-xs text-foreground/40 uppercase tracking-wider mb-3"
-                  style={{ fontFamily: "'Raleway', sans-serif" }}
-                >
-                  Rezumat programare
-                </p>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Scissors size={13} className="text-gold" />
-                    <span style={{ fontFamily: "'Raleway', sans-serif" }}>{service?.name}</span>
-                    <span className="text-foreground/40 text-xs ml-auto">{service?.duration}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Calendar size={13} className="text-gold" />
-                    <span style={{ fontFamily: "'Raleway', sans-serif" }}>
-                      {selectedDate ? formatDate(selectedDate) : ""}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Clock size={13} className="text-gold" />
-                    <span style={{ fontFamily: "'Raleway', sans-serif" }}>{selectedTime}</span>
-                  </div>
-                </div>
-              </div>
-
-              <p
-                className="text-sm text-foreground/50 mb-4"
-                style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 300 }}
-              >
-                Completează datele tale:
-              </p>
-
-              <div className="space-y-4">
-                <div>
-                  <label
-                    className="text-xs text-foreground/40 uppercase tracking-wider mb-1.5 flex items-center gap-1.5"
-                    style={{ fontFamily: "'Raleway', sans-serif" }}
-                  >
-                    <User size={12} />
-                    Nume complet
-                  </label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Ex: Ion Popescu"
-                    className="w-full bg-background/50 border border-border px-3.5 py-2.5 text-sm text-foreground placeholder:text-foreground/20 focus:outline-none focus:border-gold transition-colors"
-                    style={{ fontFamily: "'Raleway', sans-serif" }}
-                  />
-                </div>
-
-                <div>
-                  <label
-                    className="text-xs text-foreground/40 uppercase tracking-wider mb-1.5 flex items-center gap-1.5"
-                    style={{ fontFamily: "'Raleway', sans-serif" }}
-                  >
-                    <Phone size={12} />
-                    Telefon
-                  </label>
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                    placeholder="Ex: 0758900900"
-                    className="w-full bg-background/50 border border-border px-3.5 py-2.5 text-sm text-foreground placeholder:text-foreground/20 focus:outline-none focus:border-gold transition-colors"
-                    style={{ fontFamily: "'Raleway', sans-serif" }}
-                  />
-                </div>
-              </div>
-
-              <button
-                onClick={handleSubmit}
-                disabled={isSubmitting || !name.trim() || !phone.trim()}
-                className={`mt-6 w-full py-3.5 text-sm tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-2 ${
-                  !isSubmitting && name.trim() && phone.trim()
-                    ? "btn-gold"
-                    : "bg-muted text-foreground/30 cursor-not-allowed"
-                }`}
-                style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 600 }}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 size={16} className="animate-spin" />
-                    Se procesează...
-                  </>
-                ) : (
-                  <>
-                    <Check size={16} />
-                    Confirmă Programarea
-                  </>
-                )}
-              </button>
-            </div>
-          )}
-
-          {/* STEP 5 — Confirmation */}
-          {submitted && (
+          {submitted ? (
             <div className="text-center py-8">
-              <div className="w-16 h-16 bg-gold/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Check size={32} className="text-gold" />
+              <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Check className="w-8 h-8 text-green-500" />
               </div>
-              <p
-                className="text-lg font-semibold mb-2"
-                style={{ fontFamily: "'Cormorant Garamond', serif" }}
-              >
-                Programare Confirmată!
-              </p>
-              <p
-                className="text-sm text-foreground/60 mb-6"
-                style={{ fontFamily: "'Raleway', sans-serif" }}
-              >
-                Te așteptăm pe {selectedDate && formatDate(selectedDate)} la {selectedTime}
-              </p>
-              <p
-                className="text-xs text-foreground/40 mb-6"
-                style={{ fontFamily: "'Raleway', sans-serif" }}
-              >
-                Vei primi o confirmare pe WhatsApp la {phone}
+              <h3 className="text-lg font-bold text-foreground mb-2">Programare confirmată!</h3>
+              <p className="text-muted-foreground mb-6">
+                Mulțumim! Te așteptăm pe {formatDate(selectedDate!)} la {selectedTime}.
               </p>
               <button
                 onClick={handleClose}
-                className="btn-gold px-8"
-                style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 600 }}
+                className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90"
               >
-                Gata
+                Închide
               </button>
             </div>
+          ) : (
+            <>
+              {/* Step 1: Service Selection */}
+              {step === 1 && (
+                <div className="space-y-3">
+                  {services.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Se încarcă serviciile...
+                    </div>
+                  ) : (
+                    services.map((service) => (
+                      <div
+                        key={service.id}
+                        onClick={() => {
+                          setSelectedService(service.id);
+                          setStep(2);
+                        }}
+                        className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                          selectedService === service.id
+                            ? "border-primary bg-primary/10"
+                            : "border-border hover:border-primary/50"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-foreground">{service.name}</h3>
+                            <p className="text-sm text-muted-foreground mt-1">{service.description}</p>
+                            <div className="flex gap-4 mt-2 text-sm">
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-4 h-4" />
+                                {service.duration} min
+                              </span>
+                              <span className="font-bold text-primary">{service.price} RON</span>
+                            </div>
+                          </div>
+                          {selectedService === service.id && (
+                            <Check className="w-5 h-5 text-primary flex-shrink-0" />
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
+              {/* Step 2: Date Selection */}
+              {step === 2 && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <button
+                      onClick={() => {
+                        if (calendarMonth === 0) {
+                          setCalendarMonth(11);
+                          setCalendarYear(calendarYear - 1);
+                        } else {
+                          setCalendarMonth(calendarMonth - 1);
+                        }
+                      }}
+                      className="p-2 hover:bg-accent rounded"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <h3 className="font-semibold text-foreground">
+                      {MONTH_NAMES[calendarMonth]} {calendarYear}
+                    </h3>
+                    <button
+                      onClick={() => {
+                        if (calendarMonth === 11) {
+                          setCalendarMonth(0);
+                          setCalendarYear(calendarYear + 1);
+                        } else {
+                          setCalendarMonth(calendarMonth + 1);
+                        }
+                      }}
+                      className="p-2 hover:bg-accent rounded"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-7 gap-2">
+                    {DAY_NAMES.map((day) => (
+                      <div key={day} className="text-center text-xs font-semibold text-muted-foreground py-2">
+                        {day}
+                      </div>
+                    ))}
+                    {Array.from({ length: firstDay }).map((_, i) => (
+                      <div key={`empty-${i}`} />
+                    ))}
+                    {Array.from({ length: daysInMonth }).map((_, i) => {
+                      const day = i + 1;
+                      const disabled = isDateDisabled(day);
+                      return (
+                        <button
+                          key={day}
+                          onClick={() => {
+                            if (!disabled) {
+                              setSelectedDate(new Date(calendarYear, calendarMonth, day));
+                              setStep(3);
+                            }
+                          }}
+                          disabled={disabled}
+                          className={`p-2 rounded text-sm font-medium transition-all ${
+                            disabled
+                              ? "text-muted-foreground/30 cursor-not-allowed"
+                              : "text-foreground hover:bg-primary/20 cursor-pointer"
+                          }`}
+                        >
+                          {day}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3: Time Selection */}
+              {step === 3 && (
+                <div className="space-y-4">
+                  <div className="text-sm text-muted-foreground mb-4">
+                    Data selectată: <span className="font-semibold text-foreground">{formatDate(selectedDate!)}</span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-2">
+                    {TIME_SLOTS.map((slot) => {
+                      const occupied = isTimeSlotOccupied(slot);
+                      const inPast = isTimeSlotInPast(slot);
+                      const disabled = occupied || inPast;
+
+                      return (
+                        <button
+                          key={slot}
+                          onClick={() => {
+                            if (!disabled) {
+                              setSelectedTime(slot);
+                              setStep(4);
+                            }
+                          }}
+                          disabled={disabled}
+                          className={`p-2 rounded text-sm font-medium transition-all border ${
+                            disabled
+                              ? occupied
+                                ? "border-red-500/50 bg-red-500/10 text-red-500/50 cursor-not-allowed"
+                                : "border-muted-foreground/30 text-muted-foreground/30 cursor-not-allowed"
+                              : selectedTime === slot
+                              ? "border-primary bg-primary/20 text-foreground"
+                              : "border-green-500/50 bg-green-500/10 text-foreground hover:border-primary"
+                          }`}
+                        >
+                          {slot}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Step 4: Details */}
+              {step === 4 && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium text-foreground">Nume *</label>
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Introduceți numele"
+                      className="w-full mt-1 px-3 py-2 bg-background border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-foreground">Telefon *</label>
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="Introduceți telefonul"
+                      className="w-full mt-1 px-3 py-2 bg-background border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary"
+                    />
+                  </div>
+
+                  {/* Summary */}
+                  <div className="bg-accent/50 p-4 rounded-lg space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Serviciu:</span>
+                      <span className="font-semibold text-foreground">{getSelectedServiceDetails()?.name}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Data:</span>
+                      <span className="font-semibold text-foreground">{formatDate(selectedDate!)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Ora:</span>
+                      <span className="font-semibold text-foreground">{selectedTime}</span>
+                    </div>
+                    <div className="flex justify-between text-sm pt-2 border-t border-border">
+                      <span className="text-muted-foreground">Preț:</span>
+                      <span className="font-bold text-primary">{getSelectedServiceDetails()?.price} RON</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Navigation */}
+              <div className="flex gap-3 mt-6">
+                {step > 1 && !submitted && (
+                  <button
+                    onClick={() => setStep(step - 1)}
+                    className="flex-1 px-4 py-2 border border-border text-foreground rounded-lg font-medium hover:bg-accent transition-all"
+                  >
+                    Înapoi
+                  </button>
+                )}
+                {step < 4 && !submitted && (
+                  <button
+                    onClick={() => setStep(step + 1)}
+                    disabled={
+                      (step === 1 && !selectedService) ||
+                      (step === 2 && !selectedDate) ||
+                      (step === 3 && !selectedTime)
+                    }
+                    className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    Continuă
+                  </button>
+                )}
+                {step === 4 && !submitted && (
+                  <button
+                    onClick={handleSubmit}
+                    disabled={isSubmitting}
+                    className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Se procesează...
+                      </>
+                    ) : (
+                      "Confirmă Programarea"
+                    )}
+                  </button>
+                )}
+              </div>
+            </>
           )}
         </div>
       </div>
