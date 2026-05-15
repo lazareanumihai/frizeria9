@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Trash2, Plus, Edit2 } from "lucide-react";
+import { Trash2, Plus, Edit2, X, Save } from "lucide-react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 
@@ -13,6 +13,7 @@ export default function ServicesPage() {
   const [, navigate] = useLocation();
   const [newService, setNewService] = useState({ name: "", price: "", duration: 30, description: "" });
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [editData, setEditData] = useState({ name: "", price: "", duration: 30, description: "" });
 
   const { data: services = [], isLoading, refetch } = trpc.services.getAll.useQuery();
   const createMutation = trpc.services.create.useMutation();
@@ -38,6 +39,43 @@ export default function ServicesPage() {
     } catch (error) {
       toast.error("Eroare la adăugarea serviciului");
     }
+  };
+
+  const handleStartEdit = (service: any) => {
+    setEditingId(service.id);
+    setEditData({
+      name: service.name,
+      price: service.price.toString(),
+      duration: service.duration,
+      description: service.description || "",
+    });
+  };
+
+  const handleSaveEdit = async (serviceId: number) => {
+    if (!editData.name || !editData.price) {
+      toast.error("Completează toate câmpurile obligatorii");
+      return;
+    }
+
+    try {
+      await updateMutation.mutateAsync({
+        serviceId,
+        name: editData.name,
+        price: editData.price,
+        duration: editData.duration,
+        description: editData.description,
+      });
+      setEditingId(null);
+      refetch();
+      toast.success("Serviciu actualizat cu succes!");
+    } catch (error) {
+      toast.error("Eroare la actualizarea serviciului");
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditData({ name: "", price: "", duration: 30, description: "" });
   };
 
   const handleDelete = async (serviceId: number) => {
@@ -128,41 +166,105 @@ export default function ServicesPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {services.map((service) => (
                 <Card key={service.id}>
-                  <CardHeader>
-                    <CardTitle className="text-lg">{service.name}</CardTitle>
-                    <CardDescription>{service.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2 mb-4">
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Preț:</span>
-                        <span className="font-bold text-lg text-primary">{service.price} RON</span>
+                  {editingId === service.id ? (
+                    // Edit Mode
+                    <CardContent className="pt-6">
+                      <div className="space-y-4">
+                        <div>
+                          <Label>Nume Serviciu *</Label>
+                          <Input
+                            value={editData.name}
+                            onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+                            placeholder="ex: Tuns Barbă"
+                          />
+                        </div>
+                        <div>
+                          <Label>Preț (RON) *</Label>
+                          <Input
+                            type="number"
+                            value={editData.price}
+                            onChange={(e) => setEditData({ ...editData, price: e.target.value })}
+                            placeholder="ex: 50"
+                          />
+                        </div>
+                        <div>
+                          <Label>Durată (minute)</Label>
+                          <Input
+                            type="number"
+                            value={editData.duration}
+                            onChange={(e) => setEditData({ ...editData, duration: parseInt(e.target.value) })}
+                            min="15"
+                            step="15"
+                          />
+                        </div>
+                        <div>
+                          <Label>Descriere</Label>
+                          <Input
+                            value={editData.description}
+                            onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+                            placeholder="ex: Tuns profesional cu finisaj"
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={() => handleSaveEdit(service.id)}
+                            className="flex-1"
+                            disabled={updateMutation.isPending}
+                          >
+                            <Save className="w-4 h-4 mr-1" />
+                            Salvează
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={handleCancelEdit}
+                            className="flex-1"
+                          >
+                            <X className="w-4 h-4 mr-1" />
+                            Anulează
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Durată:</span>
-                        <span>{service.duration} min</span>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => setEditingId(service.id)}
-                      >
-                        <Edit2 className="w-4 h-4 mr-1" />
-                        Editează
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDelete(service.id)}
-                        disabled={deleteMutation.isPending}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
+                    </CardContent>
+                  ) : (
+                    // View Mode
+                    <>
+                      <CardHeader>
+                        <CardTitle className="text-lg">{service.name}</CardTitle>
+                        <CardDescription>{service.description}</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2 mb-4">
+                          <div className="flex justify-between">
+                            <span className="text-sm text-muted-foreground">Preț:</span>
+                            <span className="font-bold text-lg text-primary">{service.price} RON</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-sm text-muted-foreground">Durată:</span>
+                            <span>{service.duration} min</span>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => handleStartEdit(service)}
+                          >
+                            <Edit2 className="w-4 h-4 mr-1" />
+                            Editează
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDelete(service.id)}
+                            disabled={deleteMutation.isPending}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </>
+                  )}
                 </Card>
               ))}
             </div>
