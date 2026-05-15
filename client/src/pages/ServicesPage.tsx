@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Trash2, Plus, Edit2, X, Save } from "lucide-react";
+import { Trash2, Plus, Edit2, X, Save, Eye, EyeOff } from "lucide-react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 
@@ -15,10 +15,12 @@ export default function ServicesPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editData, setEditData] = useState({ name: "", price: "", duration: 30, description: "" });
 
-  const { data: services = [], isLoading, refetch } = trpc.services.getAll.useQuery();
+  // Query all services (including inactive ones) for admin view
+  const { data: allServices = [], isLoading, refetch } = trpc.services.getAllAdmin.useQuery();
   const createMutation = trpc.services.create.useMutation();
   const updateMutation = trpc.services.update.useMutation();
   const deleteMutation = trpc.services.delete.useMutation();
+  const toggleMutation = trpc.services.toggle.useMutation();
 
   const handleCreate = async () => {
     if (!newService.name || !newService.price) {
@@ -90,6 +92,16 @@ export default function ServicesPage() {
     }
   };
 
+  const handleToggle = async (serviceId: number) => {
+    try {
+      await toggleMutation.mutateAsync({ serviceId });
+      refetch();
+      toast.success("Status serviciu actualizat!");
+    } catch (error) {
+      toast.error("Eroare la actualizarea statusului serviciului");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-6xl mx-auto">
@@ -153,10 +165,11 @@ export default function ServicesPage() {
 
         {/* Services List */}
         <div>
-          <h2 className="text-2xl font-bold mb-4">Servicii Active</h2>
+          <h2 className="text-2xl font-bold mb-2">Toate Serviciile</h2>
+          <p className="text-sm text-muted-foreground mb-4">Doar serviciile active vor fi disponibile pentru clienți în formularul de programare. Poți dezactiva temporar un serviciu fără a-l șterge.</p>
           {isLoading ? (
             <div className="text-center py-8">Se încarcă...</div>
-          ) : services.length === 0 ? (
+          ) : allServices.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center text-muted-foreground">
                 Nu sunt servicii adăugate. Adaugă o serviciu nouă pentru a începe.
@@ -164,8 +177,8 @@ export default function ServicesPage() {
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {services.map((service) => (
-                <Card key={service.id}>
+              {allServices.map((service) => (
+                <Card key={service.id} className={service.isActive === 0 ? "opacity-60" : ""}>
                   {editingId === service.id ? (
                     // Edit Mode
                     <CardContent className="pt-6">
@@ -229,8 +242,19 @@ export default function ServicesPage() {
                     // View Mode
                     <>
                       <CardHeader>
-                        <CardTitle className="text-lg">{service.name}</CardTitle>
-                        <CardDescription>{service.description}</CardDescription>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1">
+                            <CardTitle className="text-lg">{service.name}</CardTitle>
+                            <CardDescription>{service.description}</CardDescription>
+                          </div>
+                          <span className={`text-xs font-semibold px-2 py-1 rounded whitespace-nowrap ${
+                            service.isActive === 1
+                              ? "bg-green-500/20 text-green-700 dark:text-green-400"
+                              : "bg-gray-500/20 text-gray-700 dark:text-gray-400"
+                          }`}>
+                            {service.isActive === 1 ? "Activ" : "Inactiv"}
+                          </span>
+                        </div>
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-2 mb-4">
@@ -252,6 +276,19 @@ export default function ServicesPage() {
                           >
                             <Edit2 className="w-4 h-4 mr-1" />
                             Editează
+                          </Button>
+                          <Button
+                            variant={service.isActive === 1 ? "outline" : "secondary"}
+                            size="sm"
+                            onClick={() => handleToggle(service.id)}
+                            disabled={toggleMutation.isPending}
+                            title={service.isActive === 1 ? "Dezactivează" : "Activează"}
+                          >
+                            {service.isActive === 1 ? (
+                              <Eye className="w-4 h-4" />
+                            ) : (
+                              <EyeOff className="w-4 h-4" />
+                            )}
                           </Button>
                           <Button
                             variant="destructive"

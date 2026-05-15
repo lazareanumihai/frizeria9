@@ -301,3 +301,43 @@ export async function deleteService(serviceId: number) {
 
   return result;
 }
+
+export async function toggleServiceStatus(serviceId: number) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  // Get current service to toggle its status
+  const service = await db
+    .select()
+    .from(services)
+    .where(eq(services.id, serviceId))
+    .limit(1);
+
+  if (service.length === 0) {
+    throw new Error("Service not found");
+  }
+
+  const newStatus = service[0].isActive === 1 ? 0 : 1;
+
+  const result = await db
+    .update(services)
+    .set({ isActive: newStatus })
+    .where(eq(services.id, serviceId));
+
+  return result;
+}
+
+export async function getAllServicesAdmin() {
+  const db = await getDb();
+  if (!db) {
+    return [];
+  }
+
+  const result = await db
+    .select()
+    .from(services);
+
+  return result;
+}

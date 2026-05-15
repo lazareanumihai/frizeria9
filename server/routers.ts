@@ -3,7 +3,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, adminProcedure } from "./_core/trpc";
 import { z } from "zod";
-import { createBooking, getBookingsByDate, getAllBookings, updateBookingStatus, deleteBooking, isTimeSlotAvailable, getAvailableSlots, getSettings, updateSettings, getAllServices, createService, updateService, deleteService } from "./db";
+import { createBooking, getBookingsByDate, getAllBookings, updateBookingStatus, deleteBooking, isTimeSlotAvailable, getAvailableSlots, getSettings, updateSettings, getAllServices, createService, updateService, deleteService, toggleServiceStatus, getAllServicesAdmin } from "./db";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -100,6 +100,9 @@ export const appRouter = router({
     getAll: publicProcedure.query(async () => {
       return getAllServices();
     }),
+    getAllAdmin: adminProcedure.query(async () => {
+      return getAllServicesAdmin();
+    }),
     create: adminProcedure
       .input(
         z.object({
@@ -126,11 +129,17 @@ export const appRouter = router({
           price: z.string().optional(),
           duration: z.number().optional(),
           description: z.string().optional(),
+          isActive: z.number().optional(),
         })
       )
       .mutation(async ({ input }) => {
         const { serviceId, ...data } = input;
         return updateService(serviceId, data);
+      }),
+    toggle: adminProcedure
+      .input(z.object({ serviceId: z.number() }))
+      .mutation(async ({ input }) => {
+        return toggleServiceStatus(input.serviceId);
       }),
     delete: adminProcedure
       .input(z.object({ serviceId: z.number() }))
