@@ -293,10 +293,9 @@ export async function deleteService(serviceId: number) {
     throw new Error("Database not available");
   }
 
-  // Soft delete - mark as inactive
+  // Hard delete - remove from database
   const result = await db
-    .update(services)
-    .set({ isActive: 0 })
+    .delete(services)
     .where(eq(services.id, serviceId));
 
   return result;
