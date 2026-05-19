@@ -258,7 +258,8 @@ export async function getAllServices() {
   const result = await db
     .select()
     .from(services)
-    .where(eq(services.isActive, 1));
+    .where(eq(services.isActive, 1))
+    .orderBy(services.order);
 
   return result;
 }

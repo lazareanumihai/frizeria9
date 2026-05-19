@@ -72,6 +72,8 @@ export const services = mysqlTable("services", {
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   duration: int("duration").notNull(), // Duration in minutes
   description: text("description"),
+  imageUrl: text("imageUrl"), // URL to service image
+  order: int("order").default(0).notNull(), // Display order on homepage
   isActive: int("isActive").default(1).notNull(), // 1 = active, 0 = inactive
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

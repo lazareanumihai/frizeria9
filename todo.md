@@ -33,9 +33,24 @@
   - [x] Only active services displayed to public
   - [x] All 16 tests passing (10 existing + 6 new service tests)
 
+## In Progress
+- [ ] Service ordering and image management
+  - [x] Add order field to services table schema (migrated)
+  - [x] Add imageUrl field to services table (migrated)
+  - [x] Update services.update endpoint to handle order and imageUrl
+  - [x] Update services.create endpoint to accept imageUrl
+  - [x] Add image preview in ServicesPage.tsx admin view
+  - [x] Add imageUrl field to edit form
+  - [x] Implement image upload (drag & drop) instead of URL input
+    - [x] Create backend uploadImage endpoint with S3 storage
+    - [x] Add drag & drop UI in ServicesPage.tsx
+    - [x] Upload to S3 storage
+  - [x] Update Home.tsx to use imageUrl from database (with fallback images)
+  - [ ] Add drag-to-reorder UI in ServicesPage.tsx
+  - [ ] Add tests for ordering and image upload
+
 ## Future Features
 - [ ] SMS/WhatsApp notifications for bookings
 - [ ] Analytics and reporting dashboard
-- [ ] Photo gallery on homepage
 - [ ] Email reminders 24h before appointment
 - [ ] Customer review/rating system

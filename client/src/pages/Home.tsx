@@ -60,15 +60,19 @@ export default function Home() {
     setMenuOpen(false);
   };
 
-  // Service images mapping
+  // Service images mapping (fallback)
   const serviceImages: Record<string, string> = {
     "Tuns": HAIRCUT_IMG,
     "Bărbierit": SHAVE_IMG,
     "Tuns + Bărbierit": TOOLS_IMG,
   };
 
-  const getServiceImage = (serviceName: string) => {
-    return serviceImages[serviceName] || HAIRCUT_IMG;
+  const getServiceImage = (service: any) => {
+    // Use database imageUrl if available, otherwise use fallback
+    if (service.imageUrl) {
+      return service.imageUrl;
+    }
+    return serviceImages[service.name] || HAIRCUT_IMG;
   };
 
   return (
@@ -298,7 +302,7 @@ export default function Home() {
                   <div className="card-lift group relative overflow-hidden border border-border bg-card">
                     <div className="aspect-[4/3] overflow-hidden">
                       <img
-                        src={getServiceImage(service.name)}
+                        src={getServiceImage(service)}
                         alt={`Serviciu ${service.name}`}
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                       />

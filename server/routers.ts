@@ -4,6 +4,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, adminProcedure } from "./_core/trpc";
 import { z } from "zod";
 import { createBooking, getBookingsByDate, getAllBookings, updateBookingStatus, deleteBooking, isTimeSlotAvailable, getAvailableSlots, getSettings, updateSettings, getAllServices, createService, updateService, deleteService, toggleServiceStatus, getAllServicesAdmin } from "./db";
+import { storagePut } from "./storage";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -97,6 +98,24 @@ export const appRouter = router({
   }),
 
   services: router({
+    uploadImage: adminProcedure
+      .input(
+        z.object({
+          fileName: z.string(),
+          fileData: z.string(),
+          mimeType: z.string(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        try {
+          const buffer = Buffer.from(input.fileData, 'base64');
+          const fileKey = `services/${Date.now()}-${input.fileName}`;
+          const result = await storagePut(fileKey, buffer, input.mimeType);
+          return { url: result.url };
+        } catch (error) {
+          throw new Error(`Image upload failed: ${error}`);
+        }
+      }),
     getAll: publicProcedure.query(async () => {
       return getAllServices();
     }),
@@ -110,6 +129,7 @@ export const appRouter = router({
           price: z.string(),
           duration: z.number().min(15),
           description: z.string().optional(),
+          imageUrl: z.string().optional(),
         })
       )
       .mutation(async ({ input }) => {
@@ -118,6 +138,7 @@ export const appRouter = router({
           price: input.price,
           duration: input.duration,
           description: input.description,
+          imageUrl: input.imageUrl,
           isActive: 1,
         });
       }),
@@ -129,6 +150,8 @@ export const appRouter = router({
           price: z.string().optional(),
           duration: z.number().optional(),
           description: z.string().optional(),
+          imageUrl: z.string().optional(),
+          order: z.number().optional(),
           isActive: z.number().optional(),
         })
       )

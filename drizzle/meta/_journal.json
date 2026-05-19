@@ -43,6 +43,13 @@
       "when": 1778244952644,
       "tag": "0005_charming_thanos",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1779197881977,
+      "tag": "0006_curved_the_hood",
+      "breakpoints": true
     }
   ]
 }

@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Trash2, Plus, Edit2, X, Save, Eye, EyeOff } from "lucide-react";
+import { Trash2, Plus, Edit2, X, Save, Eye, EyeOff, Upload } from "lucide-react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 
@@ -13,14 +13,16 @@ export default function ServicesPage() {
   const [, navigate] = useLocation();
   const [newService, setNewService] = useState({ name: "", price: "", duration: 30, description: "" });
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [editData, setEditData] = useState({ name: "", price: "", duration: 30, description: "" });
+  const [editData, setEditData] = useState({ name: "", price: "", duration: 30, description: "", imageUrl: "" });
+  const [uploadingServiceId, setUploadingServiceId] = useState<number | null>(null);
+  const [dragOverId, setDragOverId] = useState<number | null>(null);
 
-  // Query all services (including inactive ones) for admin view
   const { data: allServices = [], isLoading, refetch } = trpc.services.getAllAdmin.useQuery();
   const createMutation = trpc.services.create.useMutation();
   const updateMutation = trpc.services.update.useMutation();
   const deleteMutation = trpc.services.delete.useMutation();
   const toggleMutation = trpc.services.toggle.useMutation();
+  const uploadImageMutation = trpc.services.uploadImage.useMutation();
 
   const handleCreate = async () => {
     if (!newService.name || !newService.price) {
@@ -50,6 +52,7 @@ export default function ServicesPage() {
       price: service.price.toString(),
       duration: service.duration,
       description: service.description || "",
+      imageUrl: service.imageUrl || "",
     });
   };
 
@@ -66,6 +69,7 @@ export default function ServicesPage() {
         price: editData.price,
         duration: editData.duration,
         description: editData.description,
+        imageUrl: editData.imageUrl,
       });
       setEditingId(null);
       refetch();
@@ -77,7 +81,7 @@ export default function ServicesPage() {
 
   const handleCancelEdit = () => {
     setEditingId(null);
-    setEditData({ name: "", price: "", duration: 30, description: "" });
+    setEditData({ name: "", price: "", duration: 30, description: "", imageUrl: "" });
   };
 
   const handleDelete = async (serviceId: number) => {
@@ -99,6 +103,63 @@ export default function ServicesPage() {
       toast.success("Status serviciu actualizat!");
     } catch (error) {
       toast.error("Eroare la actualizarea statusului serviciului");
+    }
+  };
+
+  const handleImageUpload = async (serviceId: number, file: File) => {
+    if (!file.type.startsWith('image/')) {
+      toast.error("Selectează o imagine validă");
+      return;
+    }
+
+    setUploadingServiceId(serviceId);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const base64 = (e.target?.result as string).split(',')[1];
+          const result = await uploadImageMutation.mutateAsync({
+            fileName: file.name,
+            fileData: base64,
+            mimeType: file.type,
+          });
+
+          // Update service with image URL
+          await updateMutation.mutateAsync({
+            serviceId,
+            imageUrl: result.url,
+          });
+
+          refetch();
+          toast.success("Imagine încărcată cu succes!");
+        } catch (error) {
+          toast.error("Eroare la încărcarea imaginii");
+        } finally {
+          setUploadingServiceId(null);
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      toast.error("Eroare la procesarea imaginii");
+      setUploadingServiceId(null);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent, serviceId: number) => {
+    e.preventDefault();
+    setDragOverId(serviceId);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverId(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, serviceId: number) => {
+    e.preventDefault();
+    setDragOverId(null);
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      handleImageUpload(serviceId, files[0]);
     }
   };
 
@@ -166,7 +227,7 @@ export default function ServicesPage() {
         {/* Services List */}
         <div>
           <h2 className="text-2xl font-bold mb-2">Toate Serviciile</h2>
-          <p className="text-sm text-muted-foreground mb-4">Doar serviciile active vor fi disponibile pentru clienți în formularul de programare. Poți dezactiva temporar un serviciu fără a-l șterge.</p>
+          <p className="text-sm text-muted-foreground mb-4">Doar serviciile active vor fi disponibile pentru clienți în formularul de programare. Poți dezactiva temporar un serviciu fără a-l șterge. Trage o imagine pe serviciu pentru a o încărca.</p>
           {isLoading ? (
             <div className="text-center py-8">Se încarcă...</div>
           ) : allServices.length === 0 ? (
@@ -178,7 +239,7 @@ export default function ServicesPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {allServices.map((service) => (
-                <Card key={service.id} className={service.isActive === 0 ? "opacity-60" : ""}>
+                <Card key={service.id} className={`${service.isActive === 0 ? "opacity-60" : ""} ${dragOverId === service.id ? "ring-2 ring-primary" : ""}`}>
                   {editingId === service.id ? (
                     // Edit Mode
                     <CardContent className="pt-6">
@@ -240,7 +301,27 @@ export default function ServicesPage() {
                     </CardContent>
                   ) : (
                     // View Mode
-                    <>
+                    <div
+                      onDragOver={(e) => handleDragOver(e, service.id)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, service.id)}
+                      className="cursor-pointer"
+                    >
+                      {service.imageUrl ? (
+                        <div className="relative">
+                          <img src={service.imageUrl} alt={service.name} className="w-full h-40 object-cover" />
+                          <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition flex items-center justify-center opacity-0 hover:opacity-100">
+                            <Upload className="w-6 h-6 text-white" />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="w-full h-40 bg-muted flex items-center justify-center border-2 border-dashed border-muted-foreground/30">
+                          <div className="text-center">
+                            <Upload className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
+                            <p className="text-sm text-muted-foreground">Trage imagine aici</p>
+                          </div>
+                        </div>
+                      )}
                       <CardHeader>
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1">
@@ -300,7 +381,7 @@ export default function ServicesPage() {
                           </Button>
                         </div>
                       </CardContent>
-                    </>
+                    </div>
                   )}
                 </Card>
               ))}
