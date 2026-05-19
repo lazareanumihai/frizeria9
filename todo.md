@@ -24,8 +24,14 @@
   - [x] Inactive services are filtered from public booking modal (getAll returns only active)
   - [x] Add comprehensive tests for toggle functionality (6 tests, all passing)
 
-## In Progress
-- [ ] Update Home.tsx to display dynamic services from database
+## Completed Features
+- [x] Update Home.tsx to display dynamic services from database
+  - [x] Services section now renders dynamically from trpc.services.getAll
+  - [x] Pricing section displays all services with prices from database
+  - [x] Service images mapped by name (Tuns, Bărbierit, etc.)
+  - [x] Proper loading, error, and empty states handling
+  - [x] Only active services displayed to public
+  - [x] All 16 tests passing (10 existing + 6 new service tests)
 
 ## Future Features
 - [ ] SMS/WhatsApp notifications for bookings
