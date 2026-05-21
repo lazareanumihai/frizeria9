@@ -3,7 +3,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, adminProcedure } from "./_core/trpc";
 import { z } from "zod";
-import { createBooking, getBookingsByDate, getAllBookings, updateBookingStatus, deleteBooking, isTimeSlotAvailable, getAvailableSlots, getSettings, updateSettings, getAllServices, createService, updateService, deleteService, toggleServiceStatus, getAllServicesAdmin } from "./db";
+import { createBooking, getBookingsByDate, getAllBookings, updateBookingStatus, deleteBooking, isTimeSlotAvailable, getAvailableSlots, getSettings, updateSettings, getAllServices, createService, updateService, deleteService, toggleServiceStatus, getAllServicesAdmin, reorderServices } from "./db";
 import { storagePut } from "./storage";
 
 export const appRouter = router({
@@ -163,6 +163,11 @@ export const appRouter = router({
       .input(z.object({ serviceId: z.number() }))
       .mutation(async ({ input }) => {
         return toggleServiceStatus(input.serviceId);
+      }),
+    reorder: adminProcedure
+      .input(z.object({ serviceIds: z.array(z.number()) }))
+      .mutation(async ({ input }) => {
+        return reorderServices(input.serviceIds);
       }),
     delete: adminProcedure
       .input(z.object({ serviceId: z.number() }))

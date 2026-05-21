@@ -337,7 +337,25 @@ export async function getAllServicesAdmin() {
 
   const result = await db
     .select()
-    .from(services);
+    .from(services)
+    .orderBy(services.order);
 
   return result;
+}
+
+export async function reorderServices(serviceIds: number[]) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  // Update order for each service based on its position in the array
+  const updates = serviceIds.map((id, index) =>
+    db
+      .update(services)
+      .set({ order: index })
+      .where(eq(services.id, id))
+  );
+
+  return Promise.all(updates);
 }

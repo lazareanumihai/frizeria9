@@ -33,8 +33,8 @@
   - [x] Only active services displayed to public
   - [x] All 16 tests passing (10 existing + 6 new service tests)
 
-## In Progress
-- [ ] Service ordering and image management
+## Completed
+- [x] Service ordering and image management
   - [x] Add order field to services table schema (migrated)
   - [x] Add imageUrl field to services table (migrated)
   - [x] Update services.update endpoint to handle order and imageUrl
@@ -46,7 +46,11 @@
     - [x] Add drag & drop UI in ServicesPage.tsx
     - [x] Upload to S3 storage
   - [x] Update Home.tsx to use imageUrl from database (with fallback images)
-  - [ ] Add drag-to-reorder UI in ServicesPage.tsx
+  - [x] Add drag-to-reorder UI in ServicesPage.tsx
+    - [x] Reorder button to enter/exit reorder mode
+    - [x] Drag and drop services to reorder
+    - [x] Save/Cancel buttons for reorder
+    - [x] Backend reorder endpoint
   - [ ] Add tests for ordering and image upload
 
 ## Future Features

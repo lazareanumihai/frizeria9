@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Trash2, Plus, Edit2, X, Save, Eye, EyeOff, Upload } from "lucide-react";
+import { Trash2, Plus, Edit2, X, Save, Eye, EyeOff, Upload, GripVertical } from "lucide-react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 
@@ -16,6 +16,9 @@ export default function ServicesPage() {
   const [editData, setEditData] = useState({ name: "", price: "", duration: 30, description: "", imageUrl: "" });
   const [uploadingServiceId, setUploadingServiceId] = useState<number | null>(null);
   const [dragOverId, setDragOverId] = useState<number | null>(null);
+  const [draggedServiceId, setDraggedServiceId] = useState<number | null>(null);
+  const [reorderMode, setReorderMode] = useState(false);
+  const [reorderedServices, setReorderedServices] = useState<any[]>([]);
 
   const { data: allServices = [], isLoading, refetch } = trpc.services.getAllAdmin.useQuery();
   const createMutation = trpc.services.create.useMutation();
@@ -23,6 +26,7 @@ export default function ServicesPage() {
   const deleteMutation = trpc.services.delete.useMutation();
   const toggleMutation = trpc.services.toggle.useMutation();
   const uploadImageMutation = trpc.services.uploadImage.useMutation();
+  const reorderMutation = trpc.services.reorder.useMutation();
 
   const handleCreate = async () => {
     if (!newService.name || !newService.price) {
@@ -163,6 +167,53 @@ export default function ServicesPage() {
     }
   };
 
+  const handleStartReorder = () => {
+    setReorderMode(true);
+    setReorderedServices([...allServices]);
+  };
+
+  const handleServiceDragStart = (serviceId: number) => {
+    setDraggedServiceId(serviceId);
+  };
+
+  const handleServiceDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleServiceDrop = (targetServiceId: number) => {
+    if (!draggedServiceId || draggedServiceId === targetServiceId) return;
+
+    const draggedIndex = reorderedServices.findIndex(s => s.id === draggedServiceId);
+    const targetIndex = reorderedServices.findIndex(s => s.id === targetServiceId);
+
+    if (draggedIndex === -1 || targetIndex === -1) return;
+
+    const newServices = [...reorderedServices];
+    const [draggedService] = newServices.splice(draggedIndex, 1);
+    newServices.splice(targetIndex, 0, draggedService);
+
+    setReorderedServices(newServices);
+    setDraggedServiceId(null);
+  };
+
+  const handleSaveReorder = async () => {
+    try {
+      const serviceIds = reorderedServices.map(s => s.id);
+      await reorderMutation.mutateAsync({ serviceIds });
+      setReorderMode(false);
+      refetch();
+      toast.success("Serviciile au fost rearanjate cu succes!");
+    } catch (error) {
+      toast.error("Eroare la rearanjarea serviciilor");
+    }
+  };
+
+  const handleCancelReorder = () => {
+    setReorderMode(false);
+    setReorderedServices([]);
+    setDraggedServiceId(null);
+  };
+
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-6xl mx-auto">
@@ -226,8 +277,29 @@ export default function ServicesPage() {
 
         {/* Services List */}
         <div>
-          <h2 className="text-2xl font-bold mb-2">Toate Serviciile</h2>
-          <p className="text-sm text-muted-foreground mb-4">Doar serviciile active vor fi disponibile pentru clienți în formularul de programare. Poți dezactiva temporar un serviciu fără a-l șterge. Trage o imagine pe serviciu pentru a o încărca.</p>
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <h2 className="text-2xl font-bold mb-2">Toate Serviciile</h2>
+              <p className="text-sm text-muted-foreground">{reorderMode ? "Trage serviciile pentru a le rearanja" : "Doar serviciile active vor fi disponibile pentru clienți în formularul de programare. Poți dezactiva temporar un serviciu fără a-l șterge. Trage o imagine pe serviciu pentru a o încărca."}</p>
+            </div>
+            {!reorderMode ? (
+              <Button onClick={handleStartReorder} variant="outline">
+                <GripVertical className="w-4 h-4 mr-2" />
+                Rearanjează
+              </Button>
+            ) : (
+              <div className="flex gap-2">
+                <Button onClick={handleSaveReorder} disabled={reorderMutation.isPending}>
+                  <Save className="w-4 h-4 mr-2" />
+                  Salvează
+                </Button>
+                <Button onClick={handleCancelReorder} variant="outline">
+                  <X className="w-4 h-4 mr-2" />
+                  Anulează
+                </Button>
+              </div>
+            )}
+          </div>
           {isLoading ? (
             <div className="text-center py-8">Se încarcă...</div>
           ) : allServices.length === 0 ? (
@@ -238,7 +310,7 @@ export default function ServicesPage() {
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {allServices.map((service) => (
+              {(reorderMode ? reorderedServices : allServices).map((service) => (
                 <Card key={service.id} className={`${service.isActive === 0 ? "opacity-60" : ""} ${dragOverId === service.id ? "ring-2 ring-primary" : ""}`}>
                   {editingId === service.id ? (
                     // Edit Mode
@@ -302,10 +374,12 @@ export default function ServicesPage() {
                   ) : (
                     // View Mode
                     <div
-                      onDragOver={(e) => handleDragOver(e, service.id)}
-                      onDragLeave={handleDragLeave}
-                      onDrop={(e) => handleDrop(e, service.id)}
-                      className="cursor-pointer"
+                      draggable={reorderMode}
+                      onDragStart={() => reorderMode && handleServiceDragStart(service.id)}
+                      onDragOver={(e) => reorderMode ? handleServiceDragOver(e) : handleDragOver(e, service.id)}
+                      onDragLeave={() => !reorderMode && handleDragLeave()}
+                      onDrop={(e) => reorderMode ? handleServiceDrop(service.id) : handleDrop(e, service.id)}
+                      className={`cursor-pointer ${reorderMode && draggedServiceId === service.id ? "opacity-50" : ""}`}
                     >
                       {service.imageUrl ? (
                         <div className="relative">
@@ -348,38 +422,46 @@ export default function ServicesPage() {
                             <span>{service.duration} min</span>
                           </div>
                         </div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1"
-                            onClick={() => handleStartEdit(service)}
-                          >
-                            <Edit2 className="w-4 h-4 mr-1" />
-                            Editează
-                          </Button>
-                          <Button
-                            variant={service.isActive === 1 ? "outline" : "secondary"}
-                            size="sm"
-                            onClick={() => handleToggle(service.id)}
-                            disabled={toggleMutation.isPending}
-                            title={service.isActive === 1 ? "Dezactivează" : "Activează"}
-                          >
-                            {service.isActive === 1 ? (
-                              <Eye className="w-4 h-4" />
-                            ) : (
-                              <EyeOff className="w-4 h-4" />
-                            )}
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => handleDelete(service.id)}
-                            disabled={deleteMutation.isPending}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
+                        {!reorderMode && (
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1"
+                              onClick={() => handleStartEdit(service)}
+                            >
+                              <Edit2 className="w-4 h-4 mr-1" />
+                              Editează
+                            </Button>
+                            <Button
+                              variant={service.isActive === 1 ? "outline" : "secondary"}
+                              size="sm"
+                              onClick={() => handleToggle(service.id)}
+                              disabled={toggleMutation.isPending}
+                              title={service.isActive === 1 ? "Dezactivează" : "Activează"}
+                            >
+                              {service.isActive === 1 ? (
+                                <Eye className="w-4 h-4" />
+                              ) : (
+                                <EyeOff className="w-4 h-4" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDelete(service.id)}
+                              disabled={deleteMutation.isPending}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        )}
+                        {reorderMode && (
+                          <div className="flex items-center justify-center py-2 text-sm text-muted-foreground">
+                            <GripVertical className="w-4 h-4 mr-2" />
+                            Trage pentru a rearanja
+                          </div>
+                        )}
                       </CardContent>
                     </div>
                   )}
