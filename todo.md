@@ -74,7 +74,10 @@
     - [x] Add barber filter dropdown in dashboard
     - [x] Display bookings filtered by selected barber
     - [x] Display barber name in booking details
-  - [ ] Build barber management UI in admin panel
+  - [x] Build barber management UI in admin panel
+    - [x] Create BarberManagementPage.tsx with full CRUD
+    - [x] Add route /admin/barbers in App.tsx
+    - [x] Add "Frizeri" button in admin header
   - [ ] Update booking modal with barber selection step
   - [ ] Implement barber-specific availability display (red/green borders)
   - [ ] Write tests for barber functionality

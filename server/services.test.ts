@@ -95,6 +95,7 @@ describe("services router", () => {
     const allServices = await caller.services.getAllAdmin();
     const createdService = allServices.find((s) => s.name === "Toggle Test Service");
     expect(createdService).toBeDefined();
+    expect(createdService!.isActive).toBe(1); // Should be active by default
 
     // Toggle to inactive
     await caller.services.toggle({ serviceId: createdService!.id });

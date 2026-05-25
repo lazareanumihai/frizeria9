@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import AdminDashboard from "./pages/AdminDashboard";
 import SettingsPage from "./pages/SettingsPage";
 import ServicesPage from "./pages/ServicesPage";
+import BarberManagementPage from "./pages/BarberManagementPage";
 import LoginPage from "./pages/LoginPage";
 
 function Router() {
@@ -19,6 +20,7 @@ function Router() {
       <Route path={"/admin"} component={AdminDashboard} />
       <Route path={"/admin/settings"} component={SettingsPage} />
       <Route path={"/admin/services"} component={ServicesPage} />
+      <Route path={"/admin/barbers"} component={BarberManagementPage} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>
