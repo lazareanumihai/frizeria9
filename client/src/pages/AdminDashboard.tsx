@@ -134,7 +134,7 @@ export default function AdminDashboard() {
 
           {/* Right: Visual Schedule Grid */}
           <div className="lg:col-span-2">
-            <VisualSchedule selectedDate={selectedDate} />
+            <VisualSchedule selectedDate={selectedDate} selectedBarberId={selectedBarberId} />
           </div>
         </div>
 
@@ -307,10 +307,15 @@ function BookingsList({
   );
 }
 
-function VisualSchedule({ selectedDate }: { selectedDate: Date }) {
-  const { data: bookings, isLoading } = trpc.bookings.getByDate.useQuery({
-    date: selectedDate,
-  });
+function VisualSchedule({ selectedDate, selectedBarberId }: { selectedDate: Date; selectedBarberId: number | null }) {
+  const { data: bookings, isLoading } = selectedBarberId
+    ? trpc.bookings.getByBarberAndDate.useQuery({
+        barberId: selectedBarberId,
+        date: selectedDate,
+      })
+    : trpc.bookings.getByDate.useQuery({
+        date: selectedDate,
+      });
 
   if (isLoading) {
     return (
