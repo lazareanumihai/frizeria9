@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { ChevronLeft, ChevronRight, Trash2, CheckCircle2, Clock, X, Settings, Wrench } from "lucide-react";
+import { ChevronLeft, ChevronRight, Trash2, CheckCircle2, Clock, X, Settings, Wrench, Users } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { ro } from "date-fns/locale";
 import { useLocation } from "wouter";
@@ -26,6 +26,7 @@ export default function AdminDashboard() {
   const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const [selectedDate, setSelectedDate] = useState(todayMidnight);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [selectedBarberId, setSelectedBarberId] = useState<number | null>(null);
 
   // Redirect if not admin
   if (!authLoading && (!user || user.role !== "admin")) {
@@ -74,18 +75,30 @@ export default function AdminDashboard() {
             >
               <Wrench className="w-4 h-4" />
               Servicii
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setLocation("/admin/settings")}
-              className="gap-2"
-            >
-              <Settings className="w-4 h-4" />
-              Setări
-            </Button>
-          </div>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setLocation("/admin/settings")}
+            className="gap-2"
+          >
+            <Settings className="w-4 h-4" />
+            Setări
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setLocation("/admin/barbers")}
+            className="gap-2"
+          >
+            <Users className="w-4 h-4" />
+            Frizeri
+          </Button>
         </div>
+      </div>
+
+      {/* Barber Filter */}
+      <BarberFilter selectedBarberId={selectedBarberId} onBarberChange={setSelectedBarberId} />
 
         {/* Calendar Navigation */}
         <div className="flex items-center justify-between mb-6 bg-card p-4 rounded-lg border border-border">
@@ -116,7 +129,7 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left: Bookings List */}
           <div className="lg:col-span-1">
-            <BookingsList selectedDate={selectedDate} onDeleteConfirm={setDeleteConfirm} />
+            <BookingsList selectedDate={selectedDate} onDeleteConfirm={setDeleteConfirm} selectedBarberId={selectedBarberId} />
           </div>
 
           {/* Right: Visual Schedule Grid */}
@@ -156,13 +169,20 @@ export default function AdminDashboard() {
 function BookingsList({
   selectedDate,
   onDeleteConfirm,
+  selectedBarberId,
 }: {
   selectedDate: Date;
   onDeleteConfirm: (id: number) => void;
+  selectedBarberId: number | null;
 }) {
-  const { data: bookings, isLoading, refetch } = trpc.bookings.getByDate.useQuery({
-    date: selectedDate,
-  });
+  const { data: bookings, isLoading, refetch } = selectedBarberId
+    ? trpc.bookings.getByBarberAndDate.useQuery({
+        barberId: selectedBarberId,
+        date: selectedDate,
+      })
+    : trpc.bookings.getByDate.useQuery({
+        date: selectedDate,
+      });
 
   const updateStatusMutation = trpc.bookings.updateStatus.useMutation({
     onSuccess: () => refetch(),
@@ -215,6 +235,7 @@ function BookingsList({
                 ? "Bărbierit"
                 : "Pachet Complet"}
             </p>
+            {booking.barberId && <BarberNameDisplay barberId={booking.barberId} />}
 
             <div className="flex gap-1 flex-wrap">
               {booking.status === "pending" && (
@@ -423,5 +444,53 @@ function StatusBadgeSmall({ status }: { status: string }) {
     <span className={`text-xs px-1.5 py-0.5 rounded ${variants[status] || variants.pending}`}>
       {labels[status] || "Aștept"}
     </span>
+  );
+}
+
+
+function BarberFilter({ selectedBarberId, onBarberChange }: { selectedBarberId: number | null; onBarberChange: (id: number | null) => void }) {
+  const { data: barbers, isLoading } = trpc.barbers.getAll.useQuery();
+
+  if (isLoading || !barbers) {
+    return null;
+  }
+
+  return (
+    <div className="mb-6 bg-card p-4 rounded-lg border border-border">
+      <p className="text-sm font-medium text-foreground mb-3">Filtrare după frizer:</p>
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant={selectedBarberId === null ? "default" : "outline"}
+          size="sm"
+          onClick={() => onBarberChange(null)}
+        >
+          Toți frizeriii
+        </Button>
+        {barbers.map((barber) => (
+          <Button
+            key={barber.id}
+            variant={selectedBarberId === barber.id ? "default" : "outline"}
+            size="sm"
+            onClick={() => onBarberChange(barber.id)}
+          >
+            {barber.name}
+          </Button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
+function BarberNameDisplay({ barberId }: { barberId: number }) {
+  const { data: barbers } = trpc.barbers.getAll.useQuery();
+  const barber = barbers?.find((b) => b.id === barberId);
+
+  if (!barber) return null;
+
+  return (
+    <p className="text-xs text-blue-600 font-medium mb-2">
+      Frizer: {barber.name}
+    </p>
   );
 }

@@ -69,10 +69,14 @@
   - [x] Add barberId field to bookings table (migrated)
   - [x] Create barber CRUD endpoints (getAll, create, update, delete, toggle)
   - [x] Create barber availability management (getAvailability, setAvailability)
+  - [x] Add barber filtering in admin dashboard (PRIORITY)
+    - [x] Add getBookingsByBarber and getBookingsByBarberAndDate endpoints
+    - [x] Add barber filter dropdown in dashboard
+    - [x] Display bookings filtered by selected barber
+    - [x] Display barber name in booking details
   - [ ] Build barber management UI in admin panel
   - [ ] Update booking modal with barber selection step
   - [ ] Implement barber-specific availability display (red/green borders)
-  - [ ] Add barber filtering in admin dashboard
   - [ ] Write tests for barber functionality
 
 ## Future Features

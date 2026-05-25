@@ -526,3 +526,44 @@ export async function setBarberAvailability(barberId: number, dayOfWeek: number,
     endTime,
   });
 }
+
+export async function getBookingsByBarber(barberId: number) {
+  const db = await getDb();
+  if (!db) {
+    return [];
+  }
+
+  const result = await db
+    .select()
+    .from(bookings)
+    .where(eq(bookings.barberId, barberId))
+    .orderBy(bookings.bookingDate);
+
+  return result;
+}
+
+export async function getBookingsByBarberAndDate(barberId: number, date: Date) {
+  const db = await getDb();
+  if (!db) {
+    return [];
+  }
+
+  // Normalize to UTC midnight to avoid timezone issues
+  const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const startOfDay = new Date(Date.UTC(dateOnly.getFullYear(), dateOnly.getMonth(), dateOnly.getDate(), 0, 0, 0, 0));
+  const endOfDay = new Date(Date.UTC(dateOnly.getFullYear(), dateOnly.getMonth(), dateOnly.getDate(), 23, 59, 59, 999));
+
+  const result = await db
+    .select()
+    .from(bookings)
+    .where(
+      and(
+        eq(bookings.barberId, barberId),
+        gte(bookings.bookingDate, startOfDay),
+        lte(bookings.bookingDate, endOfDay)
+      )
+    )
+    .orderBy(bookings.bookingTime);
+
+  return result;
+}

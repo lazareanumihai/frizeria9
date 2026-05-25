@@ -3,7 +3,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, adminProcedure } from "./_core/trpc";
 import { z } from "zod";
-import { createBooking, getBookingsByDate, getAllBookings, updateBookingStatus, deleteBooking, isTimeSlotAvailable, getAvailableSlots, getSettings, updateSettings, getAllServices, createService, updateService, deleteService, toggleServiceStatus, getAllServicesAdmin, reorderServices, getUserByEmail, updateUserPassword, createEmailUser, getAllBarbers, getActiveBarbers, createBarber, updateBarber, deleteBarber, toggleBarberStatus, getBarberAvailability, setBarberAvailability } from "./db";
+import { createBooking, getBookingsByDate, getAllBookings, updateBookingStatus, deleteBooking, isTimeSlotAvailable, getAvailableSlots, getSettings, updateSettings, getAllServices, createService, updateService, deleteService, toggleServiceStatus, getAllServicesAdmin, reorderServices, getUserByEmail, updateUserPassword, createEmailUser, getAllBarbers, getActiveBarbers, createBarber, updateBarber, deleteBarber, toggleBarberStatus, getBarberAvailability, setBarberAvailability, getBookingsByBarber, getBookingsByBarberAndDate } from "./db";
 import bcrypt from "bcrypt";
 import { storagePut } from "./storage";
 
@@ -93,6 +93,16 @@ export const appRouter = router({
       .input(z.object({ bookingDate: z.date() }))
       .query(async ({ input }) => {
         return getAvailableSlots(input.bookingDate);
+      }),
+    getByBarber: adminProcedure
+      .input(z.object({ barberId: z.number() }))
+      .query(async ({ input }) => {
+        return getBookingsByBarber(input.barberId);
+      }),
+    getByBarberAndDate: adminProcedure
+      .input(z.object({ barberId: z.number(), date: z.date() }))
+      .query(async ({ input }) => {
+        return getBookingsByBarberAndDate(input.barberId, input.date);
       }),
   }),
 
