@@ -173,7 +173,7 @@ export async function deleteBooking(bookingId: number) {
   return result;
 }
 
-export async function isTimeSlotAvailable(bookingDate: Date, bookingTime: string) {
+export async function isTimeSlotAvailable(bookingDate: Date, bookingTime: string, barberId: number | null = null) {
   const db = await getDb();
   if (!db) {
     return true;
@@ -184,22 +184,26 @@ export async function isTimeSlotAvailable(bookingDate: Date, bookingTime: string
   const startOfDay = new Date(Date.UTC(dateOnly.getFullYear(), dateOnly.getMonth(), dateOnly.getDate(), 0, 0, 0, 0));
   const endOfDay = new Date(Date.UTC(dateOnly.getFullYear(), dateOnly.getMonth(), dateOnly.getDate(), 23, 59, 59, 999));
 
+  const conditions = [
+    gte(bookings.bookingDate, startOfDay),
+    lte(bookings.bookingDate, endOfDay),
+    eq(bookings.bookingTime, bookingTime)
+  ];
+
+  if (barberId !== null) {
+    conditions.push(eq(bookings.barberId, barberId));
+  }
+
   const existingBookings = await db
     .select()
     .from(bookings)
-    .where(
-      and(
-        gte(bookings.bookingDate, startOfDay),
-        lte(bookings.bookingDate, endOfDay),
-        eq(bookings.bookingTime, bookingTime)
-      )
-    )
+    .where(and(...conditions))
     .limit(1);
 
   return existingBookings.length === 0;
 }
 
-export async function getAvailableSlots(bookingDate: Date) {
+export async function getAvailableSlots(bookingDate: Date, barberId: number | null = null) {
   const db = await getDb();
   if (!db) {
     return [];
@@ -210,15 +214,19 @@ export async function getAvailableSlots(bookingDate: Date) {
   const startOfDay = new Date(Date.UTC(dateOnly.getFullYear(), dateOnly.getMonth(), dateOnly.getDate(), 0, 0, 0, 0));
   const endOfDay = new Date(Date.UTC(dateOnly.getFullYear(), dateOnly.getMonth(), dateOnly.getDate(), 23, 59, 59, 999));
 
+  const conditions = [
+    gte(bookings.bookingDate, startOfDay),
+    lte(bookings.bookingDate, endOfDay)
+  ];
+
+  if (barberId !== null) {
+    conditions.push(eq(bookings.barberId, barberId));
+  }
+
   const occupiedSlots = await db
     .select({ bookingTime: bookings.bookingTime })
     .from(bookings)
-    .where(
-      and(
-        gte(bookings.bookingDate, startOfDay),
-        lte(bookings.bookingDate, endOfDay)
-      )
-    );
+    .where(and(...conditions));
 
   return occupiedSlots.map(slot => slot.bookingTime);
 }

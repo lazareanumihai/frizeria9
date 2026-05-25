@@ -46,11 +46,12 @@ export const appRouter = router({
           bookingDate: z.date(),
           bookingTime: z.string(),
           notes: z.string().optional(),
+          barberId: z.number().nullable().optional(),
         })
       )
       .mutation(async ({ input }) => {
         // Check if time slot is available
-        const available = await isTimeSlotAvailable(input.bookingDate, input.bookingTime);
+        const available = await isTimeSlotAvailable(input.bookingDate, input.bookingTime, input.barberId || null);
         if (!available) {
           throw new Error("Ora selectata este deja ocupata. Te rugam sa alegi o alta ora.");
         }
@@ -64,6 +65,7 @@ export const appRouter = router({
           price: "0",
           status: "pending",
           notes: input.notes,
+          barberId: input.barberId || null,
         });
       }),
     getByDate: adminProcedure
@@ -90,9 +92,9 @@ export const appRouter = router({
         return deleteBooking(input.bookingId);
       }),
     getOccupiedSlots: publicProcedure
-      .input(z.object({ bookingDate: z.date() }))
+      .input(z.object({ bookingDate: z.date(), barberId: z.number().nullable().optional() }))
       .query(async ({ input }) => {
-        return getAvailableSlots(input.bookingDate);
+        return getAvailableSlots(input.bookingDate, input.barberId || null);
       }),
     getByBarber: adminProcedure
       .input(z.object({ barberId: z.number() }))

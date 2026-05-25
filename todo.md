@@ -79,7 +79,14 @@
     - [x] Add route /admin/barbers in App.tsx
     - [x] Add "Frizeri" button in admin header
   - [ ] Update booking modal with barber selection step
+    - [ ] Add barber selection after service selection
+    - [ ] Show "Any barber" option
+    - [ ] List active barbers
   - [ ] Implement barber-specific availability display (red/green borders)
+    - [ ] Calculate available slots based on barber's schedule
+    - [ ] Show occupied slots in red
+    - [ ] Show free slots in green
+    - [ ] Fetch barber bookings for selected date
   - [ ] Write tests for barber functionality
 
 ## Future Features

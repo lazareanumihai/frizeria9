@@ -1,7 +1,7 @@
 /**
  * Frizeria 9 — Booking Modal
  * Design: Dark Luxury Barbershop
- * Multi-step booking: Service → Date → Time → Details → Confirm
+ * Multi-step booking: Service → Barber → Date → Time → Details → Confirm
  */
 
 import { useState, useEffect } from "react";
@@ -41,6 +41,7 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
   const today = new Date();
   const [step, setStep] = useState(1);
   const [selectedService, setSelectedService] = useState<number | null>(null);
+  const [selectedBarber, setSelectedBarber] = useState<number | null | "any">("any"); // null = not selected, "any" = any barber
   const [calendarMonth, setCalendarMonth] = useState(today.getMonth());
   const [calendarYear, setCalendarYear] = useState(today.getFullYear());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -52,6 +53,9 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
 
   // Query services from database
   const { data: services = [] } = trpc.services.getAll.useQuery();
+  
+  // Query active barbers
+  const { data: barbers = [] } = trpc.barbers.getActive.useQuery();
   
   // Query settings to get closed days
   const { data: settings } = trpc.settings.get.useQuery();
@@ -67,10 +71,10 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
     }
   }, [settings]);
 
-  // Query occupied slots for selected date
+  // Query occupied slots for selected date and barber
   const { data: occupiedSlots = [] } = trpc.bookings.getOccupiedSlots.useQuery(
-    { bookingDate: selectedDate || new Date() },
-    { enabled: !!selectedDate && step === 3 }
+    { bookingDate: selectedDate || new Date(), barberId: selectedBarber === "any" ? null : (selectedBarber || null) },
+    { enabled: !!selectedDate && step === 4 }
   );
 
   // Create booking mutation
@@ -131,6 +135,11 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
     return services.find(s => s.id === selectedService);
   };
 
+  const getSelectedBarberDetails = () => {
+    if (selectedBarber === "any") return null;
+    return barbers.find(b => b.id === selectedBarber);
+  };
+
   const handleSubmit = async () => {
     if (!selectedService || !selectedDate || !selectedTime || !name || !phone) {
       toast.error("Completează toate câmpurile");
@@ -146,6 +155,7 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
         bookingTime: selectedTime,
         clientName: name,
         clientPhone: phone,
+        barberId: selectedBarber === "any" ? null : (selectedBarber || null),
       });
     } finally {
       setIsSubmitting(false);
@@ -156,6 +166,7 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
     if (submitted) {
       setStep(1);
       setSelectedService(null);
+      setSelectedBarber("any");
       setSelectedDate(null);
       setSelectedTime(null);
       setName("");
@@ -241,8 +252,64 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
                 </div>
               )}
 
-              {/* Step 2: Date Selection */}
+              {/* Step 2: Barber Selection */}
               {step === 2 && (
+                <div className="space-y-3">
+                  <div className="text-sm text-muted-foreground mb-4">
+                    Alege frizerul dorit sau lasă "Oricare frizer disponibil"
+                  </div>
+                  <div
+                    onClick={() => {
+                      setSelectedBarber("any");
+                      setStep(3);
+                    }}
+                    className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                      selectedBarber === "any"
+                        ? "border-primary bg-primary/10"
+                        : "border-border hover:border-primary/50"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-foreground">Oricare frizer disponibil</h3>
+                        <p className="text-sm text-muted-foreground mt-1">Sistemul va alege cel mai potrivit frizer</p>
+                      </div>
+                      {selectedBarber === "any" && (
+                        <Check className="w-5 h-5 text-primary flex-shrink-0" />
+                      )}
+                    </div>
+                  </div>
+                  {barbers.map((barber) => (
+                    <div
+                      key={barber.id}
+                      onClick={() => {
+                        setSelectedBarber(barber.id);
+                        setStep(3);
+                      }}
+                      className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                        selectedBarber === barber.id
+                          ? "border-primary bg-primary/10"
+                          : "border-border hover:border-primary/50"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-foreground">{barber.name}</h3>
+                          {barber.phone && (
+                            <p className="text-sm text-muted-foreground mt-1">Tel: {barber.phone}</p>
+                          )}
+                        </div>
+                        {selectedBarber === barber.id && (
+                          <Check className="w-5 h-5 text-primary flex-shrink-0" />
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Step 3: Date Selection */}
+              {step === 3 && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between mb-4">
                     <button
@@ -294,7 +361,7 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
                           onClick={() => {
                             if (!disabled) {
                               setSelectedDate(new Date(calendarYear, calendarMonth, day));
-                              setStep(3);
+                              setStep(4);
                             }
                           }}
                           disabled={disabled}
@@ -312,8 +379,8 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
                 </div>
               )}
 
-              {/* Step 3: Time Selection */}
-              {step === 3 && (
+              {/* Step 4: Time Selection */}
+              {step === 4 && (
                 <div className="space-y-4">
                   <div className="text-sm text-muted-foreground mb-4">
                     Data selectată: <span className="font-semibold text-foreground">{formatDate(selectedDate!)}</span>
@@ -330,7 +397,7 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
                           onClick={() => {
                             if (!disabled) {
                               setSelectedTime(slot);
-                              setStep(4);
+                              setStep(5);
                             }
                           }}
                           disabled={disabled}
@@ -352,8 +419,8 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
                 </div>
               )}
 
-              {/* Step 4: Details */}
-              {step === 4 && (
+              {/* Step 5: Details */}
+              {step === 5 && (
                 <div className="space-y-4">
                   <div>
                     <label className="text-sm font-medium text-foreground">Nume *</label>
@@ -383,6 +450,12 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
                       <span className="font-semibold text-foreground">{getSelectedServiceDetails()?.name}</span>
                     </div>
                     <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Frizer:</span>
+                      <span className="font-semibold text-foreground">
+                        {selectedBarber === "any" ? "Oricare disponibil" : getSelectedBarberDetails()?.name}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Data:</span>
                       <span className="font-semibold text-foreground">{formatDate(selectedDate!)}</span>
                     </div>
@@ -408,20 +481,21 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
                     Înapoi
                   </button>
                 )}
-                {step < 4 && !submitted && (
+                {step < 5 && !submitted && (
                   <button
                     onClick={() => setStep(step + 1)}
                     disabled={
                       (step === 1 && !selectedService) ||
-                      (step === 2 && !selectedDate) ||
-                      (step === 3 && !selectedTime)
+                      (step === 2 && selectedBarber === null) ||
+                      (step === 3 && !selectedDate) ||
+                      (step === 4 && !selectedTime)
                     }
                     className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                   >
                     Continuă
                   </button>
                 )}
-                {step === 4 && !submitted && (
+                {step === 5 && !submitted && (
                   <button
                     onClick={handleSubmit}
                     disabled={isSubmitting}
