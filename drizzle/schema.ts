@@ -16,6 +16,7 @@ export const users = mysqlTable("users", {
   name: text("name"),
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
+  passwordHash: text("passwordHash"),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -33,6 +34,7 @@ export const bookings = mysqlTable("bookings", {
   clientName: varchar("clientName", { length: 255 }).notNull(),
   clientPhone: varchar("clientPhone", { length: 20 }).notNull(),
   serviceType: varchar("serviceType", { length: 255 }).notNull(),
+  barberId: int("barberId"), // Optional: specific barber or null for any available
   bookingDate: timestamp("bookingDate").notNull(),
   bookingTime: varchar("bookingTime", { length: 5 }).notNull(), // HH:MM format
   status: mysqlEnum("status", ["pending", "confirmed", "completed", "cancelled"]).default("pending").notNull(),
@@ -81,3 +83,35 @@ export const services = mysqlTable("services", {
 
 export type Service = typeof services.$inferSelect;
 export type InsertService = typeof services.$inferInsert;
+/**
+ * Barbers table for storing barber information
+ */
+export const barbers = mysqlTable("barbers", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  phone: varchar("phone", { length: 20 }),
+  email: varchar("email", { length: 320 }),
+  isActive: int("isActive").default(1).notNull(), // 1 = active, 0 = inactive
+  order: int("order").default(0).notNull(), // Display order
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Barber = typeof barbers.$inferSelect;
+export type InsertBarber = typeof barbers.$inferInsert;
+
+/**
+ * Barber availability table for storing custom availability per barber
+ */
+export const barberAvailability = mysqlTable("barberAvailability", {
+  id: int("id").autoincrement().primaryKey(),
+  barberId: int("barberId").notNull(),
+  dayOfWeek: int("dayOfWeek").notNull(), // 0-6 (Sunday-Saturday)
+  startTime: varchar("startTime", { length: 5 }).notNull(), // HH:MM format
+  endTime: varchar("endTime", { length: 5 }).notNull(), // HH:MM format
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type BarberAvailability = typeof barberAvailability.$inferSelect;
+export type InsertBarberAvailability = typeof barberAvailability.$inferInsert;

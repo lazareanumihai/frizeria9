@@ -53,6 +53,28 @@
     - [x] Backend reorder endpoint
   - [ ] Add tests for ordering and image upload
 
+## Completed
+- [x] Email/Password authentication for admin
+  - [x] Add password field to users table schema (migrated)
+  - [x] Create login endpoint with email/password (auth.loginEmail)
+  - [x] Implement password hashing (bcrypt)
+  - [x] Create login page UI (LoginPage.tsx)
+  - [x] Add login route to App.tsx
+  - [x] Seed admin user with email/password (lazareanu_mihai@yahoo.com / Mycomputer.1)
+  - [ ] Add tests for email login
+
+## In Progress
+- [ ] Barber Management System
+  - [x] Add barbers table to schema (migrated)
+  - [x] Add barberId field to bookings table (migrated)
+  - [x] Create barber CRUD endpoints (getAll, create, update, delete, toggle)
+  - [x] Create barber availability management (getAvailability, setAvailability)
+  - [ ] Build barber management UI in admin panel
+  - [ ] Update booking modal with barber selection step
+  - [ ] Implement barber-specific availability display (red/green borders)
+  - [ ] Add barber filtering in admin dashboard
+  - [ ] Write tests for barber functionality
+
 ## Future Features
 - [ ] SMS/WhatsApp notifications for bookings
 - [ ] Analytics and reporting dashboard

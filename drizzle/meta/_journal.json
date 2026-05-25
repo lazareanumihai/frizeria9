@@ -50,6 +50,20 @@
       "when": 1779197881977,
       "tag": "0006_curved_the_hood",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1779452668368,
+      "tag": "0007_woozy_jack_power",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1779701416765,
+      "tag": "0008_wooden_ares",
+      "breakpoints": true
     }
   ]
 }

@@ -93,16 +93,17 @@ describe("services router", () => {
 
     // Get all services to find the one we just created
     const allServices = await caller.services.getAllAdmin();
-    const createdService = allServices[allServices.length - 1];
-    expect(createdService.isActive).toBe(1);
+    const createdService = allServices.find((s) => s.name === "Toggle Test Service");
+    expect(createdService).toBeDefined();
 
     // Toggle to inactive
-    await caller.services.toggle({ serviceId: createdService.id });
+    await caller.services.toggle({ serviceId: createdService!.id });
 
     // Verify it's inactive
     const updatedServices = await caller.services.getAllAdmin();
-    const toggledService = updatedServices.find((s) => s.id === createdService.id);
-    expect(toggledService?.isActive).toBe(0);
+    const toggledService = updatedServices.find((s) => s.id === createdService!.id);
+    expect(toggledService).toBeDefined();
+    expect(toggledService!.isActive).toBe(0);
   });
 
   it("admin can toggle service status from inactive to active", async () => {
@@ -121,17 +122,18 @@ describe("services router", () => {
 
     // Get all services to find the one we just created
     let allServices = await caller.services.getAllAdmin();
-    const createdService = allServices[allServices.length - 1];
+    const createdService = allServices.find((s) => s.name === "Toggle Back Test Service");
+    expect(createdService).toBeDefined();
 
     // Toggle to inactive
-    await caller.services.toggle({ serviceId: createdService.id });
+    await caller.services.toggle({ serviceId: createdService!.id });
 
     // Toggle back to active
-    await caller.services.toggle({ serviceId: createdService.id });
+    await caller.services.toggle({ serviceId: createdService!.id });
 
     // Verify it's active again
     allServices = await caller.services.getAllAdmin();
-    const finalService = allServices.find((s) => s.id === createdService.id);
+    const finalService = allServices.find((s) => s.id === createdService!.id);
     expect(finalService?.isActive).toBe(1);
   });
 
@@ -154,19 +156,20 @@ describe("services router", () => {
 
     // Get all services to find the one we just created
     let adminServices = await adminCaller.services.getAllAdmin();
-    const createdService = adminServices[adminServices.length - 1];
+    const createdService = adminServices.find((s) => s.name === "Hidden Service");
+    expect(createdService).toBeDefined();
 
     // Deactivate it
-    await adminCaller.services.toggle({ serviceId: createdService.id });
+    await adminCaller.services.toggle({ serviceId: createdService!.id });
 
     // Public should not see it
     const publicServices = await publicCaller.services.getAll();
-    const hiddenService = publicServices.find((s) => s.id === createdService.id);
+    const hiddenService = publicServices.find((s) => s.id === createdService!.id);
     expect(hiddenService).toBeUndefined();
 
     // Admin should see it as inactive
     adminServices = await adminCaller.services.getAllAdmin();
-    const adminViewService = adminServices.find((s) => s.id === createdService.id);
+    const adminViewService = adminServices.find((s) => s.id === createdService!.id);
     expect(adminViewService?.isActive).toBe(0);
   });
 });

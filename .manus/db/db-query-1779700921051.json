@@ -1,0 +1,9 @@
+{
+  "query": "INSERT INTO users (openId, email, name, passwordHash, loginMethod, role) VALUES ('email_lazareanu_mihai@yahoo.com_1779771000000', 'lazareanu_mihai@yahoo.com', 'Admin', '$2b$10$M.DHibO/iELgDget/0.ZfuAEwyO5kiFZOR3/Mob8hBvq86cxwjQFu', 'email', 'admin');",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway05.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 285NFt7qEU3jq3e.8aa741da80cb --database AzJrPCXs6rygdqwEVH7v2L --execute INSERT INTO users (openId, email, name, passwordHash, loginMethod, role) VALUES ('email_lazareanu_mihai@yahoo.com_1779771000000', 'lazareanu_mihai@yahoo.com', 'Admin', '$2b$10$M.DHibO/iELgDget/0.ZfuAEwyO5kiFZOR3/Mob8hBvq86cxwjQFu', 'email', 'admin');",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 578
+}

@@ -1,6 +1,6 @@
 import { eq, and, gte, lte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, bookings, InsertBooking, settings, InsertSetting, services, InsertService, Service } from "../drizzle/schema";
+import { InsertUser, users, bookings, InsertBooking, settings, InsertSetting, services, InsertService, Service, barbers, InsertBarber, Barber, barberAvailability, InsertBarberAvailability } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -358,4 +358,171 @@ export async function reorderServices(serviceIds: number[]) {
   );
 
   return Promise.all(updates);
+}
+
+// Email/Password authentication
+export async function getUserByEmail(email: string) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1);
+
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function updateUserPassword(userId: number, passwordHash: string) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  return db
+    .update(users)
+    .set({ passwordHash })
+    .where(eq(users.id, userId));
+}
+
+export async function createEmailUser(email: string, name: string, passwordHash: string) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  // Generate a unique openId for email users
+  const openId = `email_${email}_${Date.now()}`;
+
+  return db.insert(users).values({
+    openId,
+    email,
+    name,
+    passwordHash,
+    loginMethod: "email",
+    role: "admin",
+  });
+}
+
+// Barber management functions
+export async function getAllBarbers() {
+  const db = await getDb();
+  if (!db) {
+    return [];
+  }
+
+  const result = await db
+    .select()
+    .from(barbers)
+    .orderBy(barbers.order);
+
+  return result;
+}
+
+export async function getActiveBarbers() {
+  const db = await getDb();
+  if (!db) {
+    return [];
+  }
+
+  const result = await db
+    .select()
+    .from(barbers)
+    .where(eq(barbers.isActive, 1))
+    .orderBy(barbers.order);
+
+  return result;
+}
+
+export async function createBarber(barber: InsertBarber) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  return db.insert(barbers).values(barber);
+}
+
+export async function updateBarber(barberId: number, barber: Partial<InsertBarber>) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  return db
+    .update(barbers)
+    .set(barber)
+    .where(eq(barbers.id, barberId));
+}
+
+export async function deleteBarber(barberId: number) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  return db
+    .delete(barbers)
+    .where(eq(barbers.id, barberId));
+}
+
+export async function toggleBarberStatus(barberId: number) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  const barber = await db
+    .select()
+    .from(barbers)
+    .where(eq(barbers.id, barberId))
+    .limit(1);
+
+  if (barber.length === 0) {
+    throw new Error("Barber not found");
+  }
+
+  const newStatus = barber[0].isActive === 1 ? 0 : 1;
+
+  return db
+    .update(barbers)
+    .set({ isActive: newStatus })
+    .where(eq(barbers.id, barberId));
+}
+
+export async function getBarberAvailability(barberId: number, dayOfWeek: number) {
+  const db = await getDb();
+  if (!db) {
+    return [];
+  }
+
+  const result = await db
+    .select()
+    .from(barberAvailability)
+    .where(and(eq(barberAvailability.barberId, barberId), eq(barberAvailability.dayOfWeek, dayOfWeek)));
+
+  return result;
+}
+
+export async function setBarberAvailability(barberId: number, dayOfWeek: number, startTime: string, endTime: string) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  // Delete existing availability for this day
+  await db
+    .delete(barberAvailability)
+    .where(and(eq(barberAvailability.barberId, barberId), eq(barberAvailability.dayOfWeek, dayOfWeek)));
+
+  // Insert new availability
+  return db.insert(barberAvailability).values({
+    barberId,
+    dayOfWeek,
+    startTime,
+    endTime,
+  });
 }

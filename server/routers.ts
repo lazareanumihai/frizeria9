@@ -3,7 +3,8 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, adminProcedure } from "./_core/trpc";
 import { z } from "zod";
-import { createBooking, getBookingsByDate, getAllBookings, updateBookingStatus, deleteBooking, isTimeSlotAvailable, getAvailableSlots, getSettings, updateSettings, getAllServices, createService, updateService, deleteService, toggleServiceStatus, getAllServicesAdmin, reorderServices } from "./db";
+import { createBooking, getBookingsByDate, getAllBookings, updateBookingStatus, deleteBooking, isTimeSlotAvailable, getAvailableSlots, getSettings, updateSettings, getAllServices, createService, updateService, deleteService, toggleServiceStatus, getAllServicesAdmin, reorderServices, getUserByEmail, updateUserPassword, createEmailUser, getAllBarbers, getActiveBarbers, createBarber, updateBarber, deleteBarber, toggleBarberStatus, getBarberAvailability, setBarberAvailability } from "./db";
+import bcrypt from "bcrypt";
 import { storagePut } from "./storage";
 
 export const appRouter = router({
@@ -18,6 +19,21 @@ export const appRouter = router({
         success: true,
       } as const;
     }),
+    loginEmail: publicProcedure
+      .input(z.object({ email: z.string().email(), password: z.string().min(6) }))
+      .mutation(async ({ input, ctx }) => {
+        const user = await getUserByEmail(input.email);
+        if (!user || !user.passwordHash) {
+          throw new Error("Invalid email or password");
+        }
+
+        const isPasswordValid = await bcrypt.compare(input.password, user.passwordHash);
+        if (!isPasswordValid) {
+          throw new Error("Invalid email or password");
+        }
+
+        return { success: true, user };
+      }),
   }),
 
   bookings: router({
@@ -174,6 +190,30 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         return deleteService(input.serviceId);
       }),
+  }),
+
+  barbers: router({
+    getAll: publicProcedure.query(async () => getAllBarbers()),
+    getActive: publicProcedure.query(async () => getActiveBarbers()),
+    getAllAdmin: adminProcedure.query(async () => getAllBarbers()),
+    create: adminProcedure
+      .input(z.object({ name: z.string().min(1), phone: z.string().optional(), email: z.string().email().optional() }))
+      .mutation(async ({ input }) => createBarber(input)),
+    update: adminProcedure
+      .input(z.object({ barberId: z.number(), name: z.string().optional(), phone: z.string().optional(), email: z.string().email().optional(), order: z.number().optional() }))
+      .mutation(async ({ input }) => updateBarber(input.barberId, { name: input.name, phone: input.phone, email: input.email, order: input.order })),
+    delete: adminProcedure
+      .input(z.object({ barberId: z.number() }))
+      .mutation(async ({ input }) => deleteBarber(input.barberId)),
+    toggle: adminProcedure
+      .input(z.object({ barberId: z.number() }))
+      .mutation(async ({ input }) => toggleBarberStatus(input.barberId)),
+    getAvailability: publicProcedure
+      .input(z.object({ barberId: z.number(), dayOfWeek: z.number() }))
+      .query(async ({ input }) => getBarberAvailability(input.barberId, input.dayOfWeek)),
+    setAvailability: adminProcedure
+      .input(z.object({ barberId: z.number(), dayOfWeek: z.number(), startTime: z.string(), endTime: z.string() }))
+      .mutation(async ({ input }) => setBarberAvailability(input.barberId, input.dayOfWeek, input.startTime, input.endTime)),
   }),
 });
 
