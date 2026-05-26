@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { ChevronLeft, ChevronRight, Trash2, CheckCircle2, Clock, X, Settings, Wrench, Users } from "lucide-react";
+import { ChevronLeft, ChevronRight, Trash2, CheckCircle2, Clock, X, Settings, Wrench, Users, BarChart3 } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { ro } from "date-fns/locale";
 import { useLocation } from "wouter";
@@ -93,6 +93,15 @@ export default function AdminDashboard() {
           >
             <Users className="w-4 h-4" />
             Frizeri
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setLocation("/admin/analytics")}
+            className="gap-2"
+          >
+            <BarChart3 className="w-4 h-4" />
+            Analytics
           </Button>
         </div>
       </div>

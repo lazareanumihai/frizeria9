@@ -102,3 +102,53 @@
 - [ ] Analytics and reporting dashboard
 - [ ] Email reminders 24h before appointment
 - [ ] Customer review/rating system
+
+
+## Analytics Dashboard (In Progress)
+- [ ] Create backend analytics endpoints
+  - [ ] Barber performance metrics (total bookings, revenue, avg duration, cancellation rate)
+  - [ ] Daily/weekly/monthly booking trends
+  - [ ] Service distribution analysis
+  - [ ] Time-based analytics queries
+- [ ] Build analytics UI components
+  - [ ] Line chart for booking trends
+  - [ ] Bar chart for barber comparisons
+  - [ ] Pie chart for service distribution
+  - [ ] Heatmap for booking patterns
+- [ ] Implement date range and time period filtering
+  - [ ] Date range picker (7 days, 30 days, 90 days, custom)
+  - [ ] Time period selector (daily, weekly, monthly)
+  - [ ] All-time statistics view
+- [ ] Create AnalyticsDashboard.tsx page
+  - [ ] Admin-only access control
+  - [ ] Responsive layout
+  - [ ] Export/download reports
+- [ ] Write tests for analytics endpoints
+- [ ] Integrate into admin dashboard navigation
+
+
+## Analytics Dashboard (Completed)
+- [x] Create backend analytics endpoints
+  - [x] getBarberPerformanceMetrics - total bookings, completed, cancelled, revenue
+  - [x] getBookingTrendsByPeriod - daily/weekly/monthly trends
+  - [x] getServiceDistribution - service type analysis
+  - [x] getBookingHeatmapData - time-based booking patterns
+  - [x] getCancellationRateByBarber - cancellation rate by barber
+- [x] Build analytics UI components
+  - [x] Line chart for booking trends
+  - [x] Bar chart for barber comparisons
+  - [x] Pie chart for service distribution
+  - [x] Heatmap table for booking patterns
+  - [x] Bar chart for cancellation rates
+- [x] Implement date range and time period filtering
+  - [x] Date range picker (7 days, 30 days, 90 days, custom)
+  - [x] Time period selector (daily, weekly, monthly)
+  - [x] All-time statistics view
+- [x] Create AnalyticsDashboard.tsx page
+  - [x] Admin-only access control
+  - [x] Responsive layout with grid
+  - [x] Summary metrics cards
+  - [x] Multiple chart visualizations
+- [x] Integrate into admin dashboard navigation
+  - [x] Add Analytics button to AdminDashboard header
+  - [x] Add /admin/analytics route to App.tsx

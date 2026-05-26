@@ -1,7 +1,9 @@
-import { eq, and, gte, lte } from "drizzle-orm";
+
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, bookings, InsertBooking, settings, InsertSetting, services, InsertService, Service, barbers, InsertBarber, Barber, barberAvailability, InsertBarberAvailability } from "../drizzle/schema";
 import { ENV } from './_core/env';
+import { eq, and, gte, lte, sql } from "drizzle-orm";
+import { count, sum, avg } from "drizzle-orm";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -574,4 +576,227 @@ export async function getBookingsByBarberAndDate(barberId: number, date: Date) {
     .orderBy(bookings.bookingTime);
 
   return result;
+}
+
+
+// Analytics functions
+export async function getBarberPerformanceMetrics(barberId?: number, startDate?: Date, endDate?: Date) {
+  const db = await getDb();
+  if (!db) {
+    return [];
+  }
+
+  const conditions: any[] = [];
+  if (barberId) {
+    conditions.push(eq(bookings.barberId, barberId));
+  }
+  if (startDate) {
+    conditions.push(gte(bookings.bookingDate, startDate));
+  }
+  if (endDate) {
+    conditions.push(lte(bookings.bookingDate, endDate));
+  }
+
+  let query: any = db.select().from(bookings);
+  if (conditions.length > 0) {
+    query = query.where(and(...conditions));
+  }
+
+  const allBookings = await query;
+
+  // Group bookings by barber and calculate metrics
+  const metricsMap = new Map<number | null, any>();
+
+  for (const booking of allBookings) {
+    const bid = booking.barberId;
+    if (!metricsMap.has(bid)) {
+      metricsMap.set(bid, {
+        barberId: bid,
+        totalBookings: 0,
+        completedBookings: 0,
+        cancelledBookings: 0,
+        totalRevenue: 0,
+      });
+    }
+
+    const metrics = metricsMap.get(bid)!;
+    metrics.totalBookings += 1;
+    if (booking.status === 'completed') metrics.completedBookings += 1;
+    if (booking.status === 'cancelled') metrics.cancelledBookings += 1;
+    if (booking.price) metrics.totalRevenue += parseFloat(booking.price.toString());
+  }
+
+  return Array.from(metricsMap.values());
+}
+
+export async function getBookingTrendsByPeriod(period: 'daily' | 'weekly' | 'monthly', startDate: Date, endDate: Date) {
+  const db = await getDb();
+  if (!db) {
+    return [];
+  }
+
+  const allBookings = await db
+    .select()
+    .from(bookings)
+    .where(and(gte(bookings.bookingDate, startDate), lte(bookings.bookingDate, endDate)));
+
+  // Group bookings by period
+  const trendsMap = new Map<string, any>();
+
+  for (const booking of allBookings) {
+    let periodKey: string;
+    const date = new Date(booking.bookingDate);
+
+    if (period === 'daily') {
+      periodKey = date.toISOString().split('T')[0]; // YYYY-MM-DD
+    } else if (period === 'weekly') {
+      const weekStart = new Date(date);
+      weekStart.setDate(date.getDate() - date.getDay());
+      periodKey = weekStart.toISOString().split('T')[0]; // Week starting date
+    } else {
+      periodKey = date.toISOString().substring(0, 7); // YYYY-MM
+    }
+
+    if (!trendsMap.has(periodKey)) {
+      trendsMap.set(periodKey, {
+        period: periodKey,
+        totalBookings: 0,
+        completedBookings: 0,
+        cancelledBookings: 0,
+        revenue: 0,
+      });
+    }
+
+    const trend = trendsMap.get(periodKey)!;
+    trend.totalBookings += 1;
+    if (booking.status === 'completed') trend.completedBookings += 1;
+    if (booking.status === 'cancelled') trend.cancelledBookings += 1;
+    if (booking.price) trend.revenue += parseFloat(booking.price.toString());
+  }
+
+  return Array.from(trendsMap.values()).sort((a, b) => a.period.localeCompare(b.period));
+}
+
+export async function getServiceDistribution(startDate?: Date, endDate?: Date) {
+  const db = await getDb();
+  if (!db) {
+    return [];
+  }
+
+  const conditions: any[] = [];
+  if (startDate) {
+    conditions.push(gte(bookings.bookingDate, startDate));
+  }
+  if (endDate) {
+    conditions.push(lte(bookings.bookingDate, endDate));
+  }
+
+  let query: any = db.select().from(bookings);
+  if (conditions.length > 0) {
+    query = query.where(and(...conditions));
+  }
+
+  const allBookings = await query;
+
+  // Group bookings by service type
+  const distributionMap = new Map<string, any>();
+
+  for (const booking of allBookings) {
+    const serviceName = booking.serviceType;
+    if (!distributionMap.has(serviceName)) {
+      distributionMap.set(serviceName, {
+        serviceName,
+        bookingCount: 0,
+        revenue: 0,
+      });
+    }
+
+    const dist = distributionMap.get(serviceName)!;
+    dist.bookingCount += 1;
+    if (booking.price) dist.revenue += parseFloat(booking.price.toString());
+  }
+
+  return Array.from(distributionMap.values()).sort((a, b) => b.bookingCount - a.bookingCount);
+}
+
+export async function getBookingHeatmapData(startDate: Date, endDate: Date) {
+  const db = await getDb();
+  if (!db) {
+    return [];
+  }
+
+  const allBookings = await db
+    .select()
+    .from(bookings)
+    .where(and(gte(bookings.bookingDate, startDate), lte(bookings.bookingDate, endDate)));
+
+  // Group bookings by day of week and hour
+  const heatmapMap = new Map<string, any>();
+
+  for (const booking of allBookings) {
+    const date = new Date(booking.bookingDate);
+    const dayOfWeek = date.getDay(); // 0-6 (Sunday-Saturday)
+    const hour = parseInt(booking.bookingTime.split(':')[0], 10);
+    const key = `${dayOfWeek}-${hour}`;
+
+    if (!heatmapMap.has(key)) {
+      heatmapMap.set(key, {
+        dayOfWeek,
+        hour,
+        bookingCount: 0,
+      });
+    }
+
+    const heatmap = heatmapMap.get(key)!;
+    heatmap.bookingCount += 1;
+  }
+
+  return Array.from(heatmapMap.values()).sort((a, b) => {
+    if (a.dayOfWeek !== b.dayOfWeek) return a.dayOfWeek - b.dayOfWeek;
+    return a.hour - b.hour;
+  });
+}
+
+export async function getCancellationRateByBarber(startDate?: Date, endDate?: Date) {
+  const db = await getDb();
+  if (!db) {
+    return [];
+  }
+
+  const conditions: any[] = [];
+  if (startDate) {
+    conditions.push(gte(bookings.bookingDate, startDate));
+  }
+  if (endDate) {
+    conditions.push(lte(bookings.bookingDate, endDate));
+  }
+
+  let query: any = db.select().from(bookings);
+  if (conditions.length > 0) {
+    query = query.where(and(...conditions));
+  }
+
+  const allBookings = await query;
+
+  // Group bookings by barber and calculate cancellation rate
+  const cancellationMap = new Map<number | null, any>();
+
+  for (const booking of allBookings) {
+    const bid = booking.barberId;
+    if (!cancellationMap.has(bid)) {
+      cancellationMap.set(bid, {
+        barberId: bid,
+        totalBookings: 0,
+        cancelledBookings: 0,
+        cancellationRate: 0,
+      });
+    }
+
+    const cancellation = cancellationMap.get(bid)!;
+    cancellation.totalBookings += 1;
+    if (booking.status === 'cancelled') cancellation.cancelledBookings += 1;
+    cancellation.cancellationRate = (cancellation.cancelledBookings / cancellation.totalBookings) * 100;
+  }
+
+  return Array.from(cancellationMap.values()).sort((a, b) => b.cancellationRate - a.cancellationRate);
 }

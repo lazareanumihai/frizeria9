@@ -3,7 +3,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, adminProcedure } from "./_core/trpc";
 import { z } from "zod";
-import { createBooking, getBookingsByDate, getAllBookings, updateBookingStatus, deleteBooking, isTimeSlotAvailable, getAvailableSlots, getSettings, updateSettings, getAllServices, createService, updateService, deleteService, toggleServiceStatus, getAllServicesAdmin, reorderServices, getUserByEmail, updateUserPassword, createEmailUser, getAllBarbers, getActiveBarbers, createBarber, updateBarber, deleteBarber, toggleBarberStatus, getBarberAvailability, setBarberAvailability, getBookingsByBarber, getBookingsByBarberAndDate } from "./db";
+import { createBooking, getBookingsByDate, getAllBookings, updateBookingStatus, deleteBooking, isTimeSlotAvailable, getAvailableSlots, getSettings, updateSettings, getAllServices, createService, updateService, deleteService, toggleServiceStatus, getAllServicesAdmin, reorderServices, getUserByEmail, updateUserPassword, createEmailUser, getAllBarbers, getActiveBarbers, createBarber, updateBarber, deleteBarber, toggleBarberStatus, getBarberAvailability, setBarberAvailability, getBookingsByBarber, getBookingsByBarberAndDate, getBarberPerformanceMetrics, getBookingTrendsByPeriod, getServiceDistribution, getBookingHeatmapData, getCancellationRateByBarber } from "./db";
 import bcrypt from "bcrypt";
 import { storagePut } from "./storage";
 
@@ -226,6 +226,23 @@ export const appRouter = router({
     setAvailability: adminProcedure
       .input(z.object({ barberId: z.number(), dayOfWeek: z.number(), startTime: z.string(), endTime: z.string() }))
       .mutation(async ({ input }) => setBarberAvailability(input.barberId, input.dayOfWeek, input.startTime, input.endTime)),
+  }),
+  analytics: router({
+    barberPerformance: adminProcedure
+      .input(z.object({ barberId: z.number().optional(), startDate: z.date().optional(), endDate: z.date().optional() }))
+      .query(async ({ input }) => getBarberPerformanceMetrics(input.barberId, input.startDate, input.endDate)),
+    bookingTrends: adminProcedure
+      .input(z.object({ period: z.enum(['daily', 'weekly', 'monthly']), startDate: z.date(), endDate: z.date() }))
+      .query(async ({ input }) => getBookingTrendsByPeriod(input.period, input.startDate, input.endDate)),
+    serviceDistribution: adminProcedure
+      .input(z.object({ startDate: z.date().optional(), endDate: z.date().optional() }))
+      .query(async ({ input }) => getServiceDistribution(input.startDate, input.endDate)),
+    bookingHeatmap: adminProcedure
+      .input(z.object({ startDate: z.date(), endDate: z.date() }))
+      .query(async ({ input }) => getBookingHeatmapData(input.startDate, input.endDate)),
+    cancellationRate: adminProcedure
+      .input(z.object({ startDate: z.date().optional(), endDate: z.date().optional() }))
+      .query(async ({ input }) => getCancellationRateByBarber(input.startDate, input.endDate)),
   }),
 });
 
