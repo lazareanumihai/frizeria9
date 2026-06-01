@@ -152,3 +152,16 @@
 - [x] Integrate into admin dashboard navigation
   - [x] Add Analytics button to AdminDashboard header
   - [x] Add /admin/analytics route to App.tsx
+
+
+## Analytics Dashboard - Localization & Per-Barber View (Completed)
+- [x] Translate Analytics Dashboard to Romanian
+  - [x] Translate all UI text to Romanian
+  - [x] Translate chart labels and legends
+  - [x] Translate button labels and controls
+- [x] Implement per-barber analytics view
+  - [x] Add barber selection buttons at top of dashboard
+  - [x] Display only selected barber's performance metrics
+  - [x] Show only selected barber's bookings in trends
+  - [x] "Toți friezerii" option to view all barbers combined
+  - [x] Metrics update dynamically based on selected barber

@@ -629,16 +629,21 @@ export async function getBarberPerformanceMetrics(barberId?: number, startDate?:
   return Array.from(metricsMap.values());
 }
 
-export async function getBookingTrendsByPeriod(period: 'daily' | 'weekly' | 'monthly', startDate: Date, endDate: Date) {
+export async function getBookingTrendsByPeriod(period: 'daily' | 'weekly' | 'monthly', startDate: Date, endDate: Date, barberId?: number) {
   const db = await getDb();
   if (!db) {
     return [];
   }
 
-  const allBookings = await db
+  const conditions: any[] = [gte(bookings.bookingDate, startDate), lte(bookings.bookingDate, endDate)];
+  if (barberId) {
+    conditions.push(eq(bookings.barberId, barberId));
+  }
+
+  const allBookings: any = await db
     .select()
     .from(bookings)
-    .where(and(gte(bookings.bookingDate, startDate), lte(bookings.bookingDate, endDate)));
+    .where(and(...conditions));
 
   // Group bookings by period
   const trendsMap = new Map<string, any>();
@@ -677,7 +682,7 @@ export async function getBookingTrendsByPeriod(period: 'daily' | 'weekly' | 'mon
   return Array.from(trendsMap.values()).sort((a, b) => a.period.localeCompare(b.period));
 }
 
-export async function getServiceDistribution(startDate?: Date, endDate?: Date) {
+export async function getServiceDistribution(startDate?: Date, endDate?: Date, barberId?: number) {
   const db = await getDb();
   if (!db) {
     return [];
@@ -689,6 +694,9 @@ export async function getServiceDistribution(startDate?: Date, endDate?: Date) {
   }
   if (endDate) {
     conditions.push(lte(bookings.bookingDate, endDate));
+  }
+  if (barberId) {
+    conditions.push(eq(bookings.barberId, barberId));
   }
 
   let query: any = db.select().from(bookings);
@@ -719,16 +727,21 @@ export async function getServiceDistribution(startDate?: Date, endDate?: Date) {
   return Array.from(distributionMap.values()).sort((a, b) => b.bookingCount - a.bookingCount);
 }
 
-export async function getBookingHeatmapData(startDate: Date, endDate: Date) {
+export async function getBookingHeatmapData(startDate: Date, endDate: Date, barberId?: number) {
   const db = await getDb();
   if (!db) {
     return [];
   }
 
+  const conditions: any[] = [gte(bookings.bookingDate, startDate), lte(bookings.bookingDate, endDate)];
+  if (barberId) {
+    conditions.push(eq(bookings.barberId, barberId));
+  }
+
   const allBookings = await db
     .select()
     .from(bookings)
-    .where(and(gte(bookings.bookingDate, startDate), lte(bookings.bookingDate, endDate)));
+    .where(and(...conditions));
 
   // Group bookings by day of week and hour
   const heatmapMap = new Map<string, any>();
@@ -757,7 +770,7 @@ export async function getBookingHeatmapData(startDate: Date, endDate: Date) {
   });
 }
 
-export async function getCancellationRateByBarber(startDate?: Date, endDate?: Date) {
+export async function getCancellationRateByBarber(startDate?: Date, endDate?: Date, barberId?: number) {
   const db = await getDb();
   if (!db) {
     return [];
@@ -769,6 +782,9 @@ export async function getCancellationRateByBarber(startDate?: Date, endDate?: Da
   }
   if (endDate) {
     conditions.push(lte(bookings.bookingDate, endDate));
+  }
+  if (barberId) {
+    conditions.push(eq(bookings.barberId, barberId));
   }
 
   let query: any = db.select().from(bookings);

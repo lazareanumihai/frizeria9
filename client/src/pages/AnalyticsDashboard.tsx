@@ -1,8 +1,10 @@
 import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, TrendingUp, Users, DollarSign, AlertCircle } from "lucide-react";
+import { Calendar, TrendingUp, Users, DollarSign, AlertCircle, ChevronLeft } from "lucide-react";
+import { useLocation } from "wouter";
 import {
   LineChart,
   Line,
@@ -22,16 +24,23 @@ import {
 const COLORS = ["#D4AF37", "#F5F0E8", "#8B7355", "#C19A6B", "#A0826D"];
 
 export default function AnalyticsDashboard() {
+  const { user, loading: authLoading } = useAuth();
+  const [, setLocation] = useLocation();
   const [period, setPeriod] = useState<"daily" | "weekly" | "monthly">("daily");
-  const [selectedBarber, setSelectedBarber] = useState<number | undefined>();
+  const [selectedBarberId, setSelectedBarberId] = useState<number | null>(null);
   const [dateRange, setDateRange] = useState<{ start: Date; end: Date }>({
-    start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
+    start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
     end: new Date(),
+  });
+
+  // Fetch all barbers
+  const { data: barbers = [] } = trpc.barbers.getAllAdmin.useQuery(undefined, {
+    enabled: !!user && user.role === "admin",
   });
 
   // Fetch analytics data
   const { data: barberPerformance, isLoading: performanceLoading } = trpc.analytics.barberPerformance.useQuery({
-    barberId: selectedBarber,
+    barberId: selectedBarberId || undefined,
     startDate: dateRange.start,
     endDate: dateRange.end,
   });
@@ -40,22 +49,44 @@ export default function AnalyticsDashboard() {
     period,
     startDate: dateRange.start,
     endDate: dateRange.end,
+    barberId: selectedBarberId || undefined,
   });
 
   const { data: serviceDistribution, isLoading: servicesLoading } = trpc.analytics.serviceDistribution.useQuery({
     startDate: dateRange.start,
     endDate: dateRange.end,
+    barberId: selectedBarberId || undefined,
   });
 
   const { data: heatmapData, isLoading: heatmapLoading } = trpc.analytics.bookingHeatmap.useQuery({
     startDate: dateRange.start,
     endDate: dateRange.end,
+    barberId: selectedBarberId || undefined,
   });
 
   const { data: cancellationRates, isLoading: cancellationLoading } = trpc.analytics.cancellationRate.useQuery({
     startDate: dateRange.start,
     endDate: dateRange.end,
+    barberId: selectedBarberId || undefined,
   });
+
+  // Redirect if not admin
+  if (!authLoading && (!user || user.role !== "admin")) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Card className="w-96">
+          <CardHeader>
+            <CardTitle>Acces Neautorizat</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Doar administratorii pot accesa acest panou. Contactează proprietarul frizeiei.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   // Calculate summary metrics
   const summaryMetrics = useMemo(() => {
@@ -89,7 +120,7 @@ export default function AnalyticsDashboard() {
   const heatmapChartData = useMemo(() => {
     if (!heatmapData) return [];
 
-    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const dayNames = ["Dum", "Lun", "Mar", "Mie", "Joi", "Vin", "Sâm"];
     const grouped: Record<string, any> = {};
 
     for (let hour = 8; hour <= 18; hour++) {
@@ -110,6 +141,10 @@ export default function AnalyticsDashboard() {
     setDateRange({ start, end });
   };
 
+  const selectedBarberName = selectedBarberId 
+    ? barbers.find(b => b.id === selectedBarberId)?.name 
+    : "Toți friezerii";
+
   const isLoading = performanceLoading || trendsLoading || servicesLoading || heatmapLoading || cancellationLoading;
 
   return (
@@ -117,15 +152,52 @@ export default function AnalyticsDashboard() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Analytics Dashboard</h1>
-          <p className="text-muted-foreground">Track barber performance and booking trends</p>
+          <div className="flex items-center gap-4 mb-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setLocation("/admin")}
+              className="gap-2"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Înapoi
+            </Button>
+          </div>
+          <h1 className="text-4xl font-bold mb-2">Analitica și Performanță</h1>
+          <p className="text-muted-foreground">Urmărește performanța frierilor și tendințele de programare</p>
         </div>
 
+        {/* Barber Selection */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="text-lg">Selectează Frierul</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={selectedBarberId === null ? "default" : "outline"}
+                onClick={() => setSelectedBarberId(null)}
+              >
+                Toți friezerii
+              </Button>
+              {barbers.map((barber) => (
+                <Button
+                  key={barber.id}
+                  variant={selectedBarberId === barber.id ? "default" : "outline"}
+                  onClick={() => setSelectedBarberId(barber.id)}
+                >
+                  {barber.name}
+                </Button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Controls */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Time Period</CardTitle>
+              <CardTitle className="text-sm font-medium">Perioada de Timp</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               <div className="flex gap-2">
@@ -134,21 +206,21 @@ export default function AnalyticsDashboard() {
                   variant={period === "daily" ? "default" : "outline"}
                   onClick={() => setPeriod("daily")}
                 >
-                  Daily
+                  Zilnic
                 </Button>
                 <Button
                   size="sm"
                   variant={period === "weekly" ? "default" : "outline"}
                   onClick={() => setPeriod("weekly")}
                 >
-                  Weekly
+                  Săptămânal
                 </Button>
                 <Button
                   size="sm"
                   variant={period === "monthly" ? "default" : "outline"}
                   onClick={() => setPeriod("monthly")}
                 >
-                  Monthly
+                  Lunar
                 </Button>
               </div>
             </CardContent>
@@ -156,18 +228,18 @@ export default function AnalyticsDashboard() {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Date Range</CardTitle>
+              <CardTitle className="text-sm font-medium">Interval de Date</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => handleDateChange(7)}>
-                  7 days
+                  7 zile
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => handleDateChange(30)}>
-                  30 days
+                  30 zile
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => handleDateChange(90)}>
-                  90 days
+                  90 zile
                 </Button>
               </div>
             </CardContent>
@@ -175,11 +247,11 @@ export default function AnalyticsDashboard() {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Date Range</CardTitle>
+              <CardTitle className="text-sm font-medium">Perioada Selectată</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-xs text-muted-foreground">
-                {dateRange.start.toLocaleDateString()} - {dateRange.end.toLocaleDateString()}
+                {dateRange.start.toLocaleDateString("ro-RO")} - {dateRange.end.toLocaleDateString("ro-RO")}
               </p>
             </CardContent>
           </Card>
@@ -191,7 +263,7 @@ export default function AnalyticsDashboard() {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
-                Total Bookings
+                Total Programări
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -203,7 +275,7 @@ export default function AnalyticsDashboard() {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <TrendingUp className="w-4 h-4" />
-                Completed
+                Finalizate
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -215,7 +287,7 @@ export default function AnalyticsDashboard() {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <AlertCircle className="w-4 h-4" />
-                Cancelled
+                Anulate
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -227,7 +299,7 @@ export default function AnalyticsDashboard() {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <DollarSign className="w-4 h-4" />
-                Revenue
+                Venituri
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -239,7 +311,7 @@ export default function AnalyticsDashboard() {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <TrendingUp className="w-4 h-4" />
-                Completion Rate
+                Rata Finalizare
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -265,8 +337,8 @@ export default function AnalyticsDashboard() {
             {/* Booking Trends */}
             <Card>
               <CardHeader>
-                <CardTitle>Booking Trends</CardTitle>
-                <CardDescription>Bookings over time</CardDescription>
+                <CardTitle>Tendințe de Programare</CardTitle>
+                <CardDescription>Programări în timp</CardDescription>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
@@ -277,8 +349,8 @@ export default function AnalyticsDashboard() {
                     <Tooltip />
                     <Legend />
                     <Line type="monotone" dataKey="totalBookings" stroke="#D4AF37" name="Total" />
-                    <Line type="monotone" dataKey="completedBookings" stroke="#4CAF50" name="Completed" />
-                    <Line type="monotone" dataKey="cancelledBookings" stroke="#FF6B6B" name="Cancelled" />
+                    <Line type="monotone" dataKey="completedBookings" stroke="#4CAF50" name="Finalizate" />
+                    <Line type="monotone" dataKey="cancelledBookings" stroke="#FF6B6B" name="Anulate" />
                   </LineChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -287,8 +359,8 @@ export default function AnalyticsDashboard() {
             {/* Revenue Trends */}
             <Card>
               <CardHeader>
-                <CardTitle>Revenue Trends</CardTitle>
-                <CardDescription>Revenue over time</CardDescription>
+                <CardTitle>Tendințe de Venituri</CardTitle>
+                <CardDescription>Venituri în timp</CardDescription>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
@@ -297,7 +369,7 @@ export default function AnalyticsDashboard() {
                     <XAxis dataKey="period" />
                     <YAxis />
                     <Tooltip />
-                    <Bar dataKey="revenue" fill="#D4AF37" name="Revenue" />
+                    <Bar dataKey="revenue" fill="#D4AF37" name="Venituri" />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -306,8 +378,8 @@ export default function AnalyticsDashboard() {
             {/* Service Distribution */}
             <Card>
               <CardHeader>
-                <CardTitle>Service Distribution</CardTitle>
-                <CardDescription>Bookings by service type</CardDescription>
+                <CardTitle>Distribuția Serviciilor</CardTitle>
+                <CardDescription>Programări după tip de serviciu</CardDescription>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
@@ -334,8 +406,8 @@ export default function AnalyticsDashboard() {
             {/* Barber Performance */}
             <Card>
               <CardHeader>
-                <CardTitle>Barber Performance</CardTitle>
-                <CardDescription>Bookings by barber</CardDescription>
+                <CardTitle>Performanța Frierilor</CardTitle>
+                <CardDescription>Programări după frizer</CardDescription>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
@@ -346,8 +418,8 @@ export default function AnalyticsDashboard() {
                     <Tooltip />
                     <Legend />
                     <Bar dataKey="totalBookings" fill="#D4AF37" name="Total" />
-                    <Bar dataKey="completedBookings" fill="#4CAF50" name="Completed" />
-                    <Bar dataKey="cancelledBookings" fill="#FF6B6B" name="Cancelled" />
+                    <Bar dataKey="completedBookings" fill="#4CAF50" name="Finalizate" />
+                    <Bar dataKey="cancelledBookings" fill="#FF6B6B" name="Anulate" />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -356,8 +428,8 @@ export default function AnalyticsDashboard() {
             {/* Cancellation Rates */}
             <Card>
               <CardHeader>
-                <CardTitle>Cancellation Rates</CardTitle>
-                <CardDescription>Cancellation rate by barber</CardDescription>
+                <CardTitle>Rate de Anulare</CardTitle>
+                <CardDescription>Rata de anulare după frizer</CardDescription>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
@@ -366,7 +438,7 @@ export default function AnalyticsDashboard() {
                     <XAxis dataKey="barberId" />
                     <YAxis />
                     <Tooltip />
-                    <Bar dataKey="cancellationRate" fill="#FF6B6B" name="Cancellation Rate %" />
+                    <Bar dataKey="cancellationRate" fill="#FF6B6B" name="Rata Anulare %" />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -375,29 +447,29 @@ export default function AnalyticsDashboard() {
             {/* Booking Heatmap */}
             <Card className="md:col-span-2">
               <CardHeader>
-                <CardTitle>Booking Heatmap</CardTitle>
-                <CardDescription>Busiest times by day and hour</CardDescription>
+                <CardTitle>Hartă de Ocupare</CardTitle>
+                <CardDescription>Orele cu cea mai mare ocupare după zi și oră</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b">
-                        <th className="text-left p-2">Time</th>
-                        <th className="text-center p-2">Sun</th>
-                        <th className="text-center p-2">Mon</th>
-                        <th className="text-center p-2">Tue</th>
-                        <th className="text-center p-2">Wed</th>
-                        <th className="text-center p-2">Thu</th>
-                        <th className="text-center p-2">Fri</th>
-                        <th className="text-center p-2">Sat</th>
+                        <th className="text-left p-2">Ora</th>
+                        <th className="text-center p-2">Dum</th>
+                        <th className="text-center p-2">Lun</th>
+                        <th className="text-center p-2">Mar</th>
+                        <th className="text-center p-2">Mie</th>
+                        <th className="text-center p-2">Joi</th>
+                        <th className="text-center p-2">Vin</th>
+                        <th className="text-center p-2">Sâm</th>
                       </tr>
                     </thead>
                     <tbody>
                       {heatmapChartData.map((row: any, idx) => (
                         <tr key={idx} className="border-b hover:bg-muted">
                           <td className="p-2 font-medium">{row.hour}</td>
-                          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+                          {["Dum", "Lun", "Mar", "Mie", "Joi", "Vin", "Sâm"].map((day) => (
                             <td
                               key={day}
                               className="text-center p-2"

@@ -232,17 +232,17 @@ export const appRouter = router({
       .input(z.object({ barberId: z.number().optional(), startDate: z.date().optional(), endDate: z.date().optional() }))
       .query(async ({ input }) => getBarberPerformanceMetrics(input.barberId, input.startDate, input.endDate)),
     bookingTrends: adminProcedure
-      .input(z.object({ period: z.enum(['daily', 'weekly', 'monthly']), startDate: z.date(), endDate: z.date() }))
-      .query(async ({ input }) => getBookingTrendsByPeriod(input.period, input.startDate, input.endDate)),
+      .input(z.object({ period: z.enum(['daily', 'weekly', 'monthly']), startDate: z.date(), endDate: z.date(), barberId: z.number().optional() }))
+      .query(async ({ input }) => getBookingTrendsByPeriod(input.period, input.startDate, input.endDate, input.barberId)),
     serviceDistribution: adminProcedure
-      .input(z.object({ startDate: z.date().optional(), endDate: z.date().optional() }))
-      .query(async ({ input }) => getServiceDistribution(input.startDate, input.endDate)),
+      .input(z.object({ startDate: z.date().optional(), endDate: z.date().optional(), barberId: z.number().optional() }))
+      .query(async ({ input }) => getServiceDistribution(input.startDate, input.endDate, input.barberId)),
     bookingHeatmap: adminProcedure
-      .input(z.object({ startDate: z.date(), endDate: z.date() }))
-      .query(async ({ input }) => getBookingHeatmapData(input.startDate, input.endDate)),
+      .input(z.object({ startDate: z.date(), endDate: z.date(), barberId: z.number().optional() }))
+      .query(async ({ input }) => getBookingHeatmapData(input.startDate, input.endDate, input.barberId)),
     cancellationRate: adminProcedure
-      .input(z.object({ startDate: z.date().optional(), endDate: z.date().optional() }))
-      .query(async ({ input }) => getCancellationRateByBarber(input.startDate, input.endDate)),
+      .input(z.object({ startDate: z.date().optional(), endDate: z.date().optional(), barberId: z.number().optional() }))
+      .query(async ({ input }) => getCancellationRateByBarber(input.startDate, input.endDate, input.barberId)),
   }),
 });
 
