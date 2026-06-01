@@ -165,3 +165,22 @@
   - [x] Show only selected barber's bookings in trends
   - [x] "Toți friezerii" option to view all barbers combined
   - [x] Metrics update dynamically based on selected barber
+
+
+## Barber Photo Management (Completed)
+- [x] Add photoUrl field to barbers table schema
+  - [x] Added photoUrl column to barbers table
+  - [x] Ran pnpm db:push to apply migration
+- [x] Create upload endpoint for barber photos
+  - [x] Added uploadPhoto endpoint to barbers router
+  - [x] Uses S3 storage for photo uploads
+- [x] Update BarberManagementPage.tsx UI
+  - [x] Added photo upload with file input in barber edit form
+  - [x] Display current barber photo in list
+  - [x] Added delete photo option
+- [x] Display barber photos in booking modal
+  - [x] Show barber photo in barber selection
+  - [x] Added photo to barber list in modal
+- [x] Display barber photos in analytics dashboard
+  - [x] Show barber photo in barber selection buttons
+  - [x] Display barber photo in barber list cards

@@ -292,7 +292,14 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
                           : "border-border hover:border-primary/50"
                       }`}
                     >
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-4">
+                        {barber.photoUrl && (
+                          <img
+                            src={barber.photoUrl}
+                            alt={barber.name}
+                            className="w-16 h-16 object-cover rounded-lg border border-border flex-shrink-0"
+                          />
+                        )}
                         <div className="flex-1">
                           <h3 className="font-semibold text-foreground">{barber.name}</h3>
                           {barber.phone && (

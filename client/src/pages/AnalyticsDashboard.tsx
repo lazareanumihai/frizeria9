@@ -173,10 +173,11 @@ export default function AnalyticsDashboard() {
             <CardTitle className="text-lg">Selectează Frierul</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-3">
               <Button
                 variant={selectedBarberId === null ? "default" : "outline"}
                 onClick={() => setSelectedBarberId(null)}
+                className="gap-2"
               >
                 Toți friezerii
               </Button>
@@ -185,7 +186,15 @@ export default function AnalyticsDashboard() {
                   key={barber.id}
                   variant={selectedBarberId === barber.id ? "default" : "outline"}
                   onClick={() => setSelectedBarberId(barber.id)}
+                  className="gap-2 h-auto py-2"
                 >
+                  {barber.photoUrl && (
+                    <img
+                      src={barber.photoUrl}
+                      alt={barber.name}
+                      className="w-8 h-8 object-cover rounded"
+                    />
+                  )}
                   {barber.name}
                 </Button>
               ))}

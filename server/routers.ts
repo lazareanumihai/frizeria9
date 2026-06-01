@@ -226,6 +226,15 @@ export const appRouter = router({
     setAvailability: adminProcedure
       .input(z.object({ barberId: z.number(), dayOfWeek: z.number(), startTime: z.string(), endTime: z.string() }))
       .mutation(async ({ input }) => setBarberAvailability(input.barberId, input.dayOfWeek, input.startTime, input.endTime)),
+    uploadPhoto: adminProcedure
+      .input(z.object({ barberId: z.number(), fileData: z.string(), fileName: z.string() }))
+      .mutation(async ({ input }) => {
+        const buffer = Buffer.from(input.fileData, 'base64');
+        const fileKey = `barbers/${input.barberId}/${input.fileName}`;
+        const { url } = await storagePut(fileKey, buffer, 'image/jpeg');
+        await updateBarber(input.barberId, { photoUrl: url });
+        return { success: true, photoUrl: url };
+      }),
   }),
   analytics: router({
     barberPerformance: adminProcedure

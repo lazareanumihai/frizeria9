@@ -91,6 +91,7 @@ export const barbers = mysqlTable("barbers", {
   name: varchar("name", { length: 255 }).notNull(),
   phone: varchar("phone", { length: 20 }),
   email: varchar("email", { length: 320 }),
+  photoUrl: text("photoUrl"), // URL to barber's photo stored on S3
   isActive: int("isActive").default(1).notNull(), // 1 = active, 0 = inactive
   order: int("order").default(0).notNull(), // Display order
   createdAt: timestamp("createdAt").defaultNow().notNull(),
