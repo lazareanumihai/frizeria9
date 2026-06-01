@@ -43,6 +43,95 @@ function AnimatedSection({ children, className = "" }: { children: React.ReactNo
   );
 }
 
+function BarberProfilesSection() {
+  const { data: barbers = [] } = trpc.barbers.getActive.useQuery();
+  const activeBarbers = barbers.filter((b: any) => b.isActive === 1);
+
+  if (activeBarbers.length === 0) return null;
+
+  return (
+    <section className="py-20 md:py-32 bg-background border-t border-border">
+      <div className="container">
+        <AnimatedSection>
+          <div className="text-center mb-16">
+            <div
+              className="text-xs tracking-[0.25em] uppercase text-gold mb-4"
+              style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 500 }}
+            >
+              Echipa noastră
+            </div>
+            <h2
+              className="text-5xl md:text-6xl font-bold mb-4"
+              style={{ fontFamily: "'Cormorant Garamond', serif" }}
+            >
+              Friezerii Noștri
+            </h2>
+            <p className="text-foreground/60 text-lg max-w-2xl mx-auto" style={{ fontFamily: "'Raleway', sans-serif" }}>
+              Cunoaște specialiștii care vor avea grijă de stilul tău
+            </p>
+          </div>
+        </AnimatedSection>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {activeBarbers.map((barber: any, index: number) => (
+            <AnimatedSection key={barber.id} className="h-full">
+              <div className="border border-border bg-card hover:border-gold/40 transition-all duration-300 overflow-hidden group h-full flex flex-col">
+                {/* Photo */}
+                {barber.photoUrl ? (
+                  <div className="relative w-full h-64 overflow-hidden bg-background">
+                    <img
+                      src={barber.photoUrl}
+                      alt={barber.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-full h-64 bg-background/50 flex items-center justify-center">
+                    <Scissors className="w-16 h-16 text-foreground/20" />
+                  </div>
+                )}
+
+                {/* Content */}
+                <div className="p-8 flex-1 flex flex-col">
+                  <div className="mb-4">
+                    <div
+                      className="text-xs tracking-[0.25em] uppercase text-gold mb-2"
+                      style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 500 }}
+                    >
+                      Frizer {String(index + 1).padStart(2, "0")}
+                    </div>
+                    <h3
+                      className="text-3xl font-bold mb-2"
+                      style={{ fontFamily: "'Cormorant Garamond', serif" }}
+                    >
+                      {barber.name}
+                    </h3>
+                  </div>
+
+                  {barber.description && (
+                    <p
+                      className="text-foreground/60 text-sm leading-relaxed mb-6 flex-1"
+                      style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 300 }}
+                    >
+                      {barber.description}
+                    </p>
+                  )}
+
+                  {barber.phone && (
+                    <div className="text-xs text-foreground/40 pt-4 border-t border-border">
+                      <span style={{ fontFamily: "'Raleway', sans-serif" }}>📞 {barber.phone}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </AnimatedSection>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [bookingOpen, setBookingOpen] = useState(false);
@@ -450,6 +539,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* ── BARBER PROFILES ── */}
+      <BarberProfilesSection />
 
       {/* ── BOOKING MODAL ── */}
       <BookingModal open={bookingOpen} onClose={() => setBookingOpen(false)} />

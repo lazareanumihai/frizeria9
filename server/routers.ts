@@ -209,11 +209,11 @@ export const appRouter = router({
     getActive: publicProcedure.query(async () => getActiveBarbers()),
     getAllAdmin: adminProcedure.query(async () => getAllBarbers()),
     create: adminProcedure
-      .input(z.object({ name: z.string().min(1), phone: z.string().optional(), email: z.string().email().optional() }))
+      .input(z.object({ name: z.string().min(1), phone: z.string().optional(), email: z.string().email().optional(), description: z.string().optional() }))
       .mutation(async ({ input }) => createBarber(input)),
     update: adminProcedure
-      .input(z.object({ barberId: z.number(), name: z.string().optional(), phone: z.string().optional(), email: z.string().email().optional(), order: z.number().optional() }))
-      .mutation(async ({ input }) => updateBarber(input.barberId, { name: input.name, phone: input.phone, email: input.email, order: input.order })),
+      .input(z.object({ barberId: z.number(), name: z.string().optional(), phone: z.string().optional(), email: z.string().email().optional(), description: z.string().optional(), order: z.number().optional() }))
+      .mutation(async ({ input }) => updateBarber(input.barberId, { name: input.name, phone: input.phone, email: input.email, description: input.description, order: input.order })),
     delete: adminProcedure
       .input(z.object({ barberId: z.number() }))
       .mutation(async ({ input }) => deleteBarber(input.barberId)),

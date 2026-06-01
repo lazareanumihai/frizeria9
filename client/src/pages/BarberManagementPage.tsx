@@ -11,7 +11,7 @@ export default function BarberManagementPage() {
   const { data: barbers, isLoading, refetch } = trpc.barbers.getAllAdmin.useQuery();
   const [editingId, setEditingId] = useState<number | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
-  const [formData, setFormData] = useState({ name: "", phone: "", email: "" });
+  const [formData, setFormData] = useState({ name: "", phone: "", email: "", description: "" });
   const [isCreating, setIsCreating] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -20,7 +20,7 @@ export default function BarberManagementPage() {
   const createMutation = trpc.barbers.create.useMutation({
     onSuccess: () => {
       refetch();
-      setFormData({ name: "", phone: "", email: "" });
+      setFormData({ name: "", phone: "", email: "", description: "" });
       setIsCreating(false);
     },
   });
@@ -29,7 +29,7 @@ export default function BarberManagementPage() {
     onSuccess: () => {
       refetch();
       setEditingId(null);
-      setFormData({ name: "", phone: "", email: "" });
+      setFormData({ name: "", phone: "", email: "", description: "" });
       setPhotoPreview(null);
       setPhotoFile(null);
     },
@@ -93,12 +93,14 @@ export default function BarberManagementPage() {
         name: formData.name,
         phone: formData.phone || undefined,
         email: formData.email || undefined,
+        description: formData.description || undefined,
       });
     } else {
       await createMutation.mutateAsync({
         name: formData.name,
         phone: formData.phone || undefined,
         email: formData.email || undefined,
+        description: formData.description || undefined,
       });
     }
   };
@@ -109,6 +111,7 @@ export default function BarberManagementPage() {
       name: barber.name,
       phone: barber.phone || "",
       email: barber.email || "",
+      description: barber.description || "",
     });
     setPhotoPreview(barber.photoUrl || null);
   };
@@ -168,6 +171,17 @@ export default function BarberManagementPage() {
                     placeholder="ex: ion@example.com"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">Descriere</label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="ex: Specialist în tuns modern cu 15 ani de experiență"
+                  className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  rows={3}
+                />
               </div>
 
               {/* Photo Upload */}
@@ -235,7 +249,7 @@ export default function BarberManagementPage() {
                     variant="outline"
                     onClick={() => {
                       setEditingId(null);
-                      setFormData({ name: "", phone: "", email: "" });
+                      setFormData({ name: "", phone: "", email: "", description: "" });
                       setPhotoPreview(null);
                       setPhotoFile(null);
                     }}
@@ -288,6 +302,9 @@ export default function BarberManagementPage() {
                         )}
                         {barber.email && (
                           <p className="text-sm text-muted-foreground">Email: {barber.email}</p>
+                        )}
+                        {barber.description && (
+                          <p className="text-sm text-muted-foreground mt-2">{barber.description}</p>
                         )}
                       </div>
 

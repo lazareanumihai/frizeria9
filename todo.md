@@ -184,3 +184,17 @@
 - [x] Display barber photos in analytics dashboard
   - [x] Show barber photo in barber selection buttons
   - [x] Display barber photo in barber list cards
+
+
+## Barber Profiles on Home Page (Completed)
+- [x] Add description field to barbers table
+  - [x] Added description column to schema
+  - [x] Ran pnpm db:push to apply migration (0010_omniscient_vargas.sql)
+- [x] Update admin UI to edit barber descriptions
+  - [x] Added description textarea in BarberManagementPage
+  - [x] Save description to database via update endpoint
+- [x] Create barber profiles section on home page
+  - [x] Display all active barbers with photos
+  - [x] Show barber name and description
+  - [x] Created attractive card layout with hover effects
+  - [x] Added BarberProfilesSection component to Home.tsx
