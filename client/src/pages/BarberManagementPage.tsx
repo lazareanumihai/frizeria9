@@ -16,6 +16,7 @@ export default function BarberManagementPage() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [isDragActive, setIsDragActive] = useState(false);
 
   const createMutation = trpc.barbers.create.useMutation({
     onSuccess: () => {
@@ -55,9 +56,40 @@ export default function BarberManagementPage() {
     },
   });
 
+  const deletePhotoMutation = trpc.barbers.deletePhoto.useMutation({
+    onSuccess: () => {
+      refetch();
+    },
+  });
+
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    if (file && file.type.startsWith('image/')) {
+      setPhotoFile(file);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setPhotoPreview(event.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setIsDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setIsDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith('image/')) {
       setPhotoFile(file);
       const reader = new FileReader();
       reader.onload = (event) => {
@@ -212,10 +244,20 @@ export default function BarberManagementPage() {
                     )}
                     <div className="flex gap-2">
                       <label className="flex-1">
-                        <div className="border-2 border-dashed border-border rounded-lg p-4 cursor-pointer hover:border-primary transition">
+                        <div
+                          onDragEnter={handleDrag}
+                          onDragLeave={handleDrag}
+                          onDragOver={handleDrag}
+                          onDrop={handleDrop}
+                          className={`border-2 border-dashed rounded-lg p-4 cursor-pointer transition ${
+                            isDragActive
+                              ? 'border-primary bg-primary/5'
+                              : 'border-border hover:border-primary'
+                          }`}
+                        >
                           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                             <Upload className="w-4 h-4" />
-                            Selectează poza
+                            {isDragActive ? 'Trage poza aici' : 'Selectează sau trage poza'}
                           </div>
                           <input
                             type="file"
@@ -280,12 +322,19 @@ export default function BarberManagementPage() {
                     <div className="flex items-start justify-between gap-4">
                       {/* Photo */}
                       {barber.photoUrl && (
-                        <div className="w-20 h-20 flex-shrink-0">
+                        <div className="w-20 h-20 flex-shrink-0 relative group">
                           <img
                             src={barber.photoUrl}
                             alt={barber.name}
                             className="w-full h-full object-cover rounded-lg border border-border"
                           />
+                          <button
+                            onClick={() => deletePhotoMutation.mutate({ barberId: barber.id })}
+                            className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="Șterge poza"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
                         </div>
                       )}
 

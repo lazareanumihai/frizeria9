@@ -224,3 +224,13 @@
   - [x] Style as circular avatar with border (12px, gold ring when selected)
   - [x] Show scissors icon as fallback if no photo
   - [x] Update BarberFilter component to show photos with hover effects
+
+
+## Barber Photo Management in Admin Settings (Completed)
+- [x] Enhance photo upload/edit/delete in BarberManagementPage
+  - [x] Added file input for photo upload in edit form
+  - [x] Show current photo preview in barber list cards
+  - [x] Added delete photo button (hover effect on card photos)
+  - [x] Edit photo by selecting new file in edit form
+  - [x] Show upload progress with "Se încarcă..." status
+  - [x] Added deletePhoto endpoint to backend

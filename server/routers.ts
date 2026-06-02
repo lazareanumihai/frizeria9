@@ -235,6 +235,12 @@ export const appRouter = router({
         await updateBarber(input.barberId, { photoUrl: url });
         return { success: true, photoUrl: url };
       }),
+    deletePhoto: adminProcedure
+      .input(z.object({ barberId: z.number() }))
+      .mutation(async ({ input }) => {
+        await updateBarber(input.barberId, { photoUrl: null });
+        return { success: true };
+      }),
   }),
   analytics: router({
     barberPerformance: adminProcedure
