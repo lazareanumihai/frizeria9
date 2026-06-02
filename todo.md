@@ -234,3 +234,14 @@
   - [x] Edit photo by selecting new file in edit form
   - [x] Show upload progress with "Se încarcă..." status
   - [x] Added deletePhoto endpoint to backend
+
+
+## Barber Reordering (Completed)
+- [x] Add order field management to barbers
+  - [x] Implemented drag-and-drop reordering in BarberManagementPage
+  - [x] Added reorderBarbers endpoint to backend
+  - [x] Barber queries already sort by order field (getAllBarbers)
+  - [x] Order reflected on home page barber profiles
+  - [x] Order reflected in booking modal barber selection
+  - [x] Added "Reordoneaza" button to toggle reorder mode
+  - [x] Drag-and-drop with visual feedback (opacity, cursor, shadow)

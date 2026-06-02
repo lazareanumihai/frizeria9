@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -61,6 +61,23 @@ export default function BarberManagementPage() {
       refetch();
     },
   });
+
+  const reorderMutation = trpc.barbers.reorder.useMutation({
+    onSuccess: () => {
+      refetch();
+    },
+  });
+
+  const [draggedBarberId, setDraggedBarberId] = useState<number | null>(null);
+  const [sortedBarbers, setSortedBarbers] = useState<any[]>([]);
+  const [isReorderMode, setIsReorderMode] = useState(false);
+
+  // Update sortedBarbers when barbers data changes
+  useEffect(() => {
+    if (barbers) {
+      setSortedBarbers([...barbers]);
+    }
+  }, [barbers]);
 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -135,6 +152,32 @@ export default function BarberManagementPage() {
         description: formData.description || undefined,
       });
     }
+  };
+
+  const handleBarberDragStart = (e: React.DragEvent, barberId: number) => {
+    setDraggedBarberId(barberId);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleBarberDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleBarberDrop = (e: React.DragEvent, targetBarberId: number) => {
+    e.preventDefault();
+    if (!draggedBarberId || draggedBarberId === targetBarberId) return;
+
+    const draggedIndex = sortedBarbers.findIndex((b: any) => b.id === draggedBarberId);
+    const targetIndex = sortedBarbers.findIndex((b: any) => b.id === targetBarberId);
+
+    if (draggedIndex === -1 || targetIndex === -1) return;
+
+    const newSorted = [...sortedBarbers];
+    const [draggedItem] = newSorted.splice(draggedIndex, 1);
+    newSorted.splice(targetIndex, 0, draggedItem);
+    setSortedBarbers(newSorted);
+    setDraggedBarberId(null);
   };
 
   const startEdit = (barber: any) => {
@@ -306,7 +349,25 @@ export default function BarberManagementPage() {
 
         {/* Barbers List */}
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold text-foreground">Frizeri ({barbers?.length || 0})</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-foreground">Frizeri ({barbers?.length || 0})</h2>
+            {barbers && barbers.length > 1 && (
+              <Button
+                variant={isReorderMode ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  if (isReorderMode && sortedBarbers) {
+                    reorderMutation.mutate({
+                      barberIds: sortedBarbers.map((b: any) => b.id),
+                    });
+                  }
+                  setIsReorderMode(!isReorderMode);
+                }}
+              >
+                {isReorderMode ? "Salvează ordine" : "Reordoneaza"}
+              </Button>
+            )}
+          </div>
 
           {!barbers || barbers.length === 0 ? (
             <Card>
@@ -316,8 +377,14 @@ export default function BarberManagementPage() {
             </Card>
           ) : (
             <div className="grid gap-4">
-              {barbers.map((barber: any) => (
-                <Card key={barber.id}>
+              {(isReorderMode ? sortedBarbers : barbers).map((barber: any) => (
+                <Card
+                  draggable={isReorderMode}
+                  onDragStart={(e: any) => isReorderMode && handleBarberDragStart(e, barber.id)}
+                  onDragOver={isReorderMode ? handleBarberDragOver : undefined}
+                  onDrop={(e: any) => isReorderMode && handleBarberDrop(e, barber.id)}
+                  className={`${isReorderMode ? 'cursor-move hover:shadow-lg transition-shadow' : ''} ${draggedBarberId === barber.id ? 'opacity-50' : ''}`}
+                >
                   <CardContent className="pt-6">
                     <div className="flex items-start justify-between gap-4">
                       {/* Photo */}

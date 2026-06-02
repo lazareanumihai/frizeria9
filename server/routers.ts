@@ -3,7 +3,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, adminProcedure } from "./_core/trpc";
 import { z } from "zod";
-import { createBooking, getBookingsByDate, getAllBookings, updateBookingStatus, deleteBooking, isTimeSlotAvailable, getAvailableSlots, getSettings, updateSettings, getAllServices, createService, updateService, deleteService, toggleServiceStatus, getAllServicesAdmin, reorderServices, getUserByEmail, updateUserPassword, createEmailUser, getAllBarbers, getActiveBarbers, createBarber, updateBarber, deleteBarber, toggleBarberStatus, getBarberAvailability, setBarberAvailability, getBookingsByBarber, getBookingsByBarberAndDate, getBarberPerformanceMetrics, getBookingTrendsByPeriod, getServiceDistribution, getBookingHeatmapData, getCancellationRateByBarber } from "./db";
+import { createBooking, getBookingsByDate, getAllBookings, updateBookingStatus, deleteBooking, isTimeSlotAvailable, getAvailableSlots, getSettings, updateSettings, getAllServices, createService, updateService, deleteService, toggleServiceStatus, getAllServicesAdmin, reorderServices, getUserByEmail, updateUserPassword, createEmailUser, getAllBarbers, getActiveBarbers, createBarber, updateBarber, deleteBarber, toggleBarberStatus, getBarberAvailability, setBarberAvailability, getBookingsByBarber, getBookingsByBarberAndDate, getBarberPerformanceMetrics, getBookingTrendsByPeriod, getServiceDistribution, getBookingHeatmapData, getCancellationRateByBarber, reorderBarbers } from "./db";
 import bcrypt from "bcrypt";
 import { storagePut } from "./storage";
 
@@ -240,6 +240,11 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         await updateBarber(input.barberId, { photoUrl: null });
         return { success: true };
+      }),
+    reorder: adminProcedure
+      .input(z.object({ barberIds: z.array(z.number()) }))
+      .mutation(async ({ input }) => {
+        return reorderBarbers(input.barberIds);
       }),
   }),
   analytics: router({

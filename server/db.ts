@@ -816,3 +816,21 @@ export async function getCancellationRateByBarber(startDate?: Date, endDate?: Da
 
   return Array.from(cancellationMap.values()).sort((a, b) => b.cancellationRate - a.cancellationRate);
 }
+
+
+export async function reorderBarbers(barberIds: number[]) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  // Update order for each barber based on its position in the array
+  const updates = barberIds.map((id, index) =>
+    db
+      .update(barbers)
+      .set({ order: index })
+      .where(eq(barbers.id, id))
+  );
+
+  return Promise.all(updates);
+}
