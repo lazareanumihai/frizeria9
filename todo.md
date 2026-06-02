@@ -206,3 +206,13 @@
   - [x] Pass barber ID to booking modal via selectedBarberId prop
   - [x] Auto-select barber in booking form when button clicked
   - [x] Button styling matches design (gold bg, hover effect)
+
+
+## Admin Dashboard Display Fixes (Completed)
+- [x] Fix booking display in admin schedule view
+  - [x] Show full service name instead of "Pachet"
+    - [x] Created getServiceName function that maps serviceType to full service name
+    - [x] Passed function to BookingsList and VisualSchedule components
+  - [x] Show full status "Confirmat" instead of "Conf."
+    - [x] Updated status labels mapping
+  - [x] Display complete booking information

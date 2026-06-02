@@ -20,6 +20,7 @@ const TIME_SLOTS = [
 export default function AdminDashboard() {
   const { user, loading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
+  const { data: services = [] } = trpc.services.getAll.useQuery();
   
   // Initialize with today's date at midnight (local time)
   const today = new Date();
@@ -27,6 +28,12 @@ export default function AdminDashboard() {
   const [selectedDate, setSelectedDate] = useState(todayMidnight);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
   const [selectedBarberId, setSelectedBarberId] = useState<number | null>(null);
+
+  // Create service name mapping from serviceType to full name
+  const getServiceName = (serviceType: string) => {
+    const service = services.find((s: any) => s.name.toLowerCase() === serviceType.toLowerCase());
+    return service ? service.name : serviceType;
+  };
 
   // Redirect if not admin
   if (!authLoading && (!user || user.role !== "admin")) {
@@ -138,12 +145,12 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left: Bookings List */}
           <div className="lg:col-span-1">
-            <BookingsList selectedDate={selectedDate} onDeleteConfirm={setDeleteConfirm} selectedBarberId={selectedBarberId} />
+            <BookingsList selectedDate={selectedDate} onDeleteConfirm={setDeleteConfirm} selectedBarberId={selectedBarberId} getServiceName={getServiceName} />
           </div>
 
           {/* Right: Visual Schedule Grid */}
           <div className="lg:col-span-2">
-            <VisualSchedule selectedDate={selectedDate} selectedBarberId={selectedBarberId} />
+            <VisualSchedule selectedDate={selectedDate} selectedBarberId={selectedBarberId} getServiceName={getServiceName} />
           </div>
         </div>
 
@@ -179,10 +186,12 @@ function BookingsList({
   selectedDate,
   onDeleteConfirm,
   selectedBarberId,
+  getServiceName,
 }: {
   selectedDate: Date;
   onDeleteConfirm: (id: number) => void;
   selectedBarberId: number | null;
+  getServiceName: (serviceType: string) => string;
 }) {
   const { data: bookings, isLoading, refetch } = selectedBarberId
     ? trpc.bookings.getByBarberAndDate.useQuery({
@@ -238,11 +247,7 @@ function BookingsList({
             </div>
 
             <p className="text-xs text-muted-foreground mb-2">
-              {booking.serviceType === "tuns"
-                ? "Tuns"
-                : booking.serviceType === "barbierit"
-                ? "Bărbierit"
-                : "Pachet Complet"}
+              {getServiceName(booking.serviceType)}
             </p>
             {booking.barberId && <BarberNameDisplay barberId={booking.barberId} />}
 
@@ -316,7 +321,7 @@ function BookingsList({
   );
 }
 
-function VisualSchedule({ selectedDate, selectedBarberId }: { selectedDate: Date; selectedBarberId: number | null }) {
+function VisualSchedule({ selectedDate, selectedBarberId, getServiceName }: { selectedDate: Date; selectedBarberId: number | null; getServiceName: (serviceType: string) => string }) {
   const { data: bookings, isLoading } = selectedBarberId
     ? trpc.bookings.getByBarberAndDate.useQuery({
         barberId: selectedBarberId,
@@ -373,11 +378,7 @@ function VisualSchedule({ selectedDate, selectedBarberId }: { selectedDate: Date
                       {booking.clientName.split(" ")[0]}
                     </p>
                     <p className="text-red-600 text-xs">
-                      {booking.serviceType === "tuns"
-                        ? "Tuns"
-                        : booking.serviceType === "barbierit"
-                        ? "Bărbierit"
-                        : "Pachet"}
+                      {getServiceName(booking.serviceType)}
                     </p>
                     <StatusBadgeSmall status={booking.status} />
                   </div>
@@ -449,7 +450,7 @@ function StatusBadgeSmall({ status }: { status: string }) {
 
   const labels: Record<string, string> = {
     pending: "Aștept",
-    confirmed: "Conf.",
+    confirmed: "Confirmat",
     completed: "Finalizat",
     cancelled: "Anulat",
   };
