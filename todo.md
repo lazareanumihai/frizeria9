@@ -198,3 +198,11 @@
   - [x] Show barber name and description
   - [x] Created attractive card layout with hover effects
   - [x] Added BarberProfilesSection component to Home.tsx
+
+
+## Barber Card Booking Button (Completed)
+- [x] Add "Programează-te" button to barber profile cards
+  - [x] Added button to each barber card with gold styling
+  - [x] Pass barber ID to booking modal via selectedBarberId prop
+  - [x] Auto-select barber in booking form when button clicked
+  - [x] Button styling matches design (gold bg, hover effect)

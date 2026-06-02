@@ -12,6 +12,7 @@ import { trpc } from "@/lib/trpc";
 interface BookingModalProps {
   open: boolean;
   onClose: () => void;
+  selectedBarberId?: number | null;
 }
 
 const TIME_SLOTS = [
@@ -37,11 +38,11 @@ const MONTH_NAMES = [
 
 const DAY_NAMES = ["Lu", "Ma", "Mi", "Jo", "Vi", "Sâ", "Du"];
 
-export default function BookingModal({ open, onClose }: BookingModalProps) {
+export default function BookingModal({ open, onClose, selectedBarberId }: BookingModalProps) {
   const today = new Date();
   const [step, setStep] = useState(1);
   const [selectedService, setSelectedService] = useState<number | null>(null);
-  const [selectedBarber, setSelectedBarber] = useState<number | null | "any">("any"); // null = not selected, "any" = any barber
+  const [selectedBarber, setSelectedBarber] = useState<number | null | "any">(selectedBarberId ? selectedBarberId : "any"); // null = not selected, "any" = any barber
   const [calendarMonth, setCalendarMonth] = useState(today.getMonth());
   const [calendarYear, setCalendarYear] = useState(today.getFullYear());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -70,6 +71,26 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
       }
     }
   }, [settings]);
+
+  // Update selectedBarber when selectedBarberId changes
+  useEffect(() => {
+    if (open && selectedBarberId) {
+      setSelectedBarber(selectedBarberId);
+    }
+  }, [selectedBarberId, open]);
+
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!open) {
+      setStep(1);
+      setSelectedService(null);
+      setSelectedBarber(selectedBarberId ? selectedBarberId : "any");
+      setSelectedDate(null);
+      setSelectedTime(null);
+      setName("");
+      setPhone("");
+    }
+  }, [open, selectedBarberId]);
 
   // Query occupied slots for selected date and barber
   const { data: occupiedSlots = [] } = trpc.bookings.getOccupiedSlots.useQuery(

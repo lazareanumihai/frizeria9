@@ -43,7 +43,7 @@ function AnimatedSection({ children, className = "" }: { children: React.ReactNo
   );
 }
 
-function BarberProfilesSection() {
+function BarberProfilesSection({ onBooking }: { onBooking: (barberId: number) => void }) {
   const { data: barbers = [] } = trpc.barbers.getActive.useQuery();
   const activeBarbers = barbers.filter((b: any) => b.isActive === 1);
 
@@ -122,6 +122,14 @@ function BarberProfilesSection() {
                       <span style={{ fontFamily: "'Raleway', sans-serif" }}>📞 {barber.phone}</span>
                     </div>
                   )}
+
+                  <button
+                    onClick={() => onBooking(barber.id)}
+                    className="mt-6 w-full px-4 py-3 bg-gold text-background font-semibold hover:bg-gold/90 transition-colors duration-300 rounded-md"
+                    style={{ fontFamily: "'Raleway', sans-serif" }}
+                  >
+                    Programează-te
+                  </button>
                 </div>
               </div>
             </AnimatedSection>
@@ -136,6 +144,7 @@ export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [bookingOpen, setBookingOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [selectedBarberId, setSelectedBarberId] = useState<number | null>(null);
   const { data: services = [], isLoading, error } = trpc.services.getAll.useQuery();
 
   useEffect(() => {
@@ -541,10 +550,22 @@ export default function Home() {
       </section>
 
       {/* ── BARBER PROFILES ── */}
-      <BarberProfilesSection />
+      <BarberProfilesSection
+        onBooking={(barberId) => {
+          setSelectedBarberId(barberId);
+          setBookingOpen(true);
+        }}
+      />
 
       {/* ── BOOKING MODAL ── */}
-      <BookingModal open={bookingOpen} onClose={() => setBookingOpen(false)} />
+      <BookingModal
+        open={bookingOpen}
+        onClose={() => {
+          setBookingOpen(false);
+          setSelectedBarberId(null);
+        }}
+        selectedBarberId={selectedBarberId}
+      />
     </div>
   );
 }
