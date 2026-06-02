@@ -216,3 +216,11 @@
   - [x] Show full status "Confirmat" instead of "Conf."
     - [x] Updated status labels mapping
   - [x] Display complete booking information
+
+
+## Admin Dashboard - Barber Photo Display (Completed)
+- [x] Add barber photo in circular avatar above barber name
+  - [x] Display barber photo in admin dashboard header/filter
+  - [x] Style as circular avatar with border (12px, gold ring when selected)
+  - [x] Show scissors icon as fallback if no photo
+  - [x] Update BarberFilter component to show photos with hover effects

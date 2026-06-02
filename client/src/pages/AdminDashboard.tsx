@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { ChevronLeft, ChevronRight, Trash2, CheckCircle2, Clock, X, Settings, Wrench, Users, BarChart3 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Trash2, CheckCircle2, Clock, X, Settings, Wrench, Users, BarChart3, Scissors } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { ro } from "date-fns/locale";
 import { useLocation } from "wouter";
@@ -482,14 +482,32 @@ function BarberFilter({ selectedBarberId, onBarberChange }: { selectedBarberId: 
           Toți frizeriii
         </Button>
         {barbers.map((barber) => (
-          <Button
+          <div
             key={barber.id}
-            variant={selectedBarberId === barber.id ? "default" : "outline"}
-            size="sm"
+            className="flex flex-col items-center gap-1 cursor-pointer"
             onClick={() => onBarberChange(barber.id)}
           >
-            {barber.name}
-          </Button>
+            <div
+              className={`w-12 h-12 rounded-full border-2 flex items-center justify-center overflow-hidden transition-all ${
+                selectedBarberId === barber.id
+                  ? "border-yellow-500 ring-2 ring-yellow-400"
+                  : "border-gray-300 hover:border-yellow-400"
+              }`}
+            >
+              {barber.photoUrl ? (
+                <img
+                  src={barber.photoUrl}
+                  alt={barber.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <Scissors className="w-6 h-6 text-gray-400" />
+              )}
+            </div>
+            <span className="text-xs text-foreground text-center max-w-[60px] truncate">
+              {barber.name}
+            </span>
+          </div>
         ))}
       </div>
     </div>
