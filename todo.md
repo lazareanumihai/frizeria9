@@ -259,3 +259,21 @@
 - [x] Add comprehensive tests for schedule management
   - [x] Created barbers.schedule.test.ts with 7 tests
   - [x] All tests passing
+
+
+## Barber Day Off Feature (In Progress)
+- [x] Add isDayOff field to barberAvailability table schema
+  - [x] Added isDayOff column to barberAvailability table (int, default 0)
+  - [x] Ran pnpm db:push to apply migration
+- [x] Update backend functions to support isDayOff
+  - [x] Updated setBarberAvailability function to accept isDayOff parameter
+  - [x] Updated setAvailability endpoint to accept isDayOff input
+- [x] Update BarberScheduleManager component
+  - [x] Added DaySchedule interface with isDayOff field
+  - [x] Added checkbox for marking days as "Zi Liberă" (Day Off)
+  - [x] UI shows either time inputs OR "Zi Liberă" checkbox based on isDayOff status
+  - [x] Save isDayOff status when saving schedule
+- [x] Add tests for day off functionality
+  - [x] Added 3 new tests to barbers.schedule.test.ts
+  - [x] Tests verify marking day as off, retrieving status, and toggling back to working day
+- [ ] Test UI in browser to verify day off functionality works end-to-end

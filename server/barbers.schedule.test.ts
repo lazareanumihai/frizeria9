@@ -232,3 +232,66 @@ describe("Barber Schedule Management", () => {
     }
   });
 });
+
+  it("should mark a day as off", async () => {
+    const ctx = createMockContext(mockAdminUser);
+    const caller = appRouter.createCaller(ctx);
+
+    const result = await caller.barbers.setAvailability({
+      barberId: testBarberId,
+      dayOfWeek: 4,
+      startTime: "09:00",
+      endTime: "18:00",
+      isDayOff: 1,
+    });
+
+    expect(result).toBeDefined();
+    expect((result as any).isDayOff).toBe(1);
+  });
+
+  it("should retrieve day off status when fetching availability", async () => {
+    const ctx = createMockContext(mockAdminUser);
+    const caller = appRouter.createCaller(ctx);
+
+    await caller.barbers.setAvailability({
+      barberId: testBarberId,
+      dayOfWeek: 6,
+      startTime: "09:00",
+      endTime: "18:00",
+      isDayOff: 1,
+    });
+
+    const availability = await caller.barbers.getAvailability({
+      barberId: testBarberId,
+      dayOfWeek: 6,
+    });
+
+    expect(Array.isArray(availability)).toBe(true);
+    expect(availability.length).toBeGreaterThan(0);
+    expect((availability[0] as any).isDayOff).toBe(1);
+  });
+
+  it("should allow setting a day back to working day", async () => {
+    const ctx = createMockContext(mockAdminUser);
+    const caller = appRouter.createCaller(ctx);
+
+    await caller.barbers.setAvailability({
+      barberId: testBarberId,
+      dayOfWeek: 0,
+      startTime: "09:00",
+      endTime: "18:00",
+      isDayOff: 1,
+    });
+
+    const result = await caller.barbers.setAvailability({
+      barberId: testBarberId,
+      dayOfWeek: 0,
+      startTime: "08:00",
+      endTime: "17:00",
+      isDayOff: 0,
+    });
+
+    expect((result as any).isDayOff).toBe(0);
+    expect(result.startTime).toBe("08:00");
+  });
+});

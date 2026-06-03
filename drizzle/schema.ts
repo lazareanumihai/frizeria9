@@ -111,6 +111,7 @@ export const barberAvailability = mysqlTable("barberAvailability", {
   dayOfWeek: int("dayOfWeek").notNull(), // 0-6 (Sunday-Saturday)
   startTime: varchar("startTime", { length: 5 }).notNull(), // HH:MM format
   endTime: varchar("endTime", { length: 5 }).notNull(), // HH:MM format
+  isDayOff: int("isDayOff").default(0).notNull(), // 1 = day off, 0 = working day
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

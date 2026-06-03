@@ -224,8 +224,8 @@ export const appRouter = router({
       .input(z.object({ barberId: z.number(), dayOfWeek: z.number() }))
       .query(async ({ input }) => getBarberAvailability(input.barberId, input.dayOfWeek)),
     setAvailability: adminProcedure
-      .input(z.object({ barberId: z.number(), dayOfWeek: z.number(), startTime: z.string(), endTime: z.string() }))
-      .mutation(async ({ input }) => setBarberAvailability(input.barberId, input.dayOfWeek, input.startTime, input.endTime)),
+      .input(z.object({ barberId: z.number(), dayOfWeek: z.number(), startTime: z.string(), endTime: z.string(), isDayOff: z.number().optional() }))
+      .mutation(async ({ input }) => setBarberAvailability(input.barberId, input.dayOfWeek, input.startTime, input.endTime, input.isDayOff)),
     uploadPhoto: adminProcedure
       .input(z.object({ barberId: z.number(), fileData: z.string(), fileName: z.string() }))
       .mutation(async ({ input }) => {

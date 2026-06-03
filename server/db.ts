@@ -526,7 +526,7 @@ export async function getBarberAvailability(barberId: number, dayOfWeek: number)
   return result;
 }
 
-export async function setBarberAvailability(barberId: number, dayOfWeek: number, startTime: string, endTime: string) {
+export async function setBarberAvailability(barberId: number, dayOfWeek: number, startTime: string, endTime: string, isDayOff?: number) {
   const db = await getDb();
   if (!db) {
     throw new Error("Database not available");
@@ -543,6 +543,7 @@ export async function setBarberAvailability(barberId: number, dayOfWeek: number,
     dayOfWeek,
     startTime,
     endTime,
+    isDayOff: isDayOff ?? 0,
   };
   await db.insert(barberAvailability).values(insertData);
 
