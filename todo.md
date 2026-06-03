@@ -245,3 +245,17 @@
   - [x] Order reflected in booking modal barber selection
   - [x] Added "Reordoneaza" button to toggle reorder mode
   - [x] Drag-and-drop with visual feedback (opacity, cursor, shadow)
+
+
+## Barber Work Schedule Management (Completed)
+- [x] Create UI for setting barber work hours
+  - [x] Add working days selector (Mon-Sun checkboxes) - BarberScheduleManager component
+  - [x] Add start and end time pickers for each day - Time input fields in modal
+  - [x] Display current schedule in barber management page - Schedule modal in BarberManagementPage
+  - [x] Save schedule to database - setAvailability endpoint
+- [x] Integrate schedule with booking system
+  - [x] Filter available time slots based on barber schedule - getBarberAvailability query
+  - [x] Show unavailable times as disabled in booking modal - BookingModal uses barber schedule
+- [x] Add comprehensive tests for schedule management
+  - [x] Created barbers.schedule.test.ts with 7 tests
+  - [x] All tests passing

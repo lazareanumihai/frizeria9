@@ -453,7 +453,16 @@ export async function createBarber(barber: InsertBarber) {
     throw new Error("Database not available");
   }
 
-  return db.insert(barbers).values(barber);
+  const result = await db.insert(barbers).values(barber);
+  
+  // Get the newly created barber
+  const created = await db
+    .select()
+    .from(barbers)
+    .where(eq(barbers.name, barber.name))
+    .orderBy((t) => t.id);
+  
+  return created[created.length - 1];
 }
 
 export async function updateBarber(barberId: number, barber: Partial<InsertBarber>) {
@@ -528,13 +537,22 @@ export async function setBarberAvailability(barberId: number, dayOfWeek: number,
     .delete(barberAvailability)
     .where(and(eq(barberAvailability.barberId, barberId), eq(barberAvailability.dayOfWeek, dayOfWeek)));
 
-  // Insert new availability
-  return db.insert(barberAvailability).values({
+  // Insert new availability using values with explicit field assignment
+  const insertData: InsertBarberAvailability = {
     barberId,
     dayOfWeek,
     startTime,
     endTime,
-  });
+  };
+  await db.insert(barberAvailability).values(insertData);
+
+  // Return the newly inserted availability
+  const result = await db
+    .select()
+    .from(barberAvailability)
+    .where(and(eq(barberAvailability.barberId, barberId), eq(barberAvailability.dayOfWeek, dayOfWeek)))
+    .orderBy((t) => t.id);
+  return result[result.length - 1];
 }
 
 export async function getBookingsByBarber(barberId: number) {

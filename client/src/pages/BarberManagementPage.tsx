@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Eye, EyeOff, Trash2, Edit2, Plus, Upload, X } from "lucide-react";
+import { Eye, EyeOff, Trash2, Edit2, Plus, Upload, X, Clock } from "lucide-react";
+import { BarberScheduleManager } from "@/components/BarberScheduleManager";
 
 export default function BarberManagementPage() {
   const { data: barbers, isLoading, refetch } = trpc.barbers.getAllAdmin.useQuery();
@@ -71,6 +72,7 @@ export default function BarberManagementPage() {
   const [draggedBarberId, setDraggedBarberId] = useState<number | null>(null);
   const [sortedBarbers, setSortedBarbers] = useState<any[]>([]);
   const [isReorderMode, setIsReorderMode] = useState(false);
+  const [scheduleBarber, setScheduleBarber] = useState<{ id: number; name: string } | null>(null);
 
   // Update sortedBarbers when barbers data changes
   useEffect(() => {
@@ -429,6 +431,15 @@ export default function BarberManagementPage() {
                         <Button
                           size="sm"
                           variant="outline"
+                          onClick={() => setScheduleBarber({ id: barber.id, name: barber.name })}
+                          title="Gestionează program"
+                        >
+                          <Clock className="w-4 h-4" />
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
                           onClick={() => toggleMutation.mutate({ barberId: barber.id })}
                           title={barber.isActive === 1 ? "Dezactivează" : "Activează"}
                         >
@@ -486,6 +497,29 @@ export default function BarberManagementPage() {
             </div>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Schedule Modal */}
+        {scheduleBarber && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                <CardTitle>Program de Lucru</CardTitle>
+                <button
+                  onClick={() => setScheduleBarber(null)}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </CardHeader>
+              <CardContent>
+                <BarberScheduleManager
+                  barberId={scheduleBarber.id}
+                  barberName={scheduleBarber.name}
+                />
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   );
