@@ -142,47 +142,34 @@ export function BarberScheduleManager({ barberId, barberName }: BarberScheduleMa
                 </Badge>
               </div>
 
-              {schedule[day.value]?.isDayOff ? (
-                <div className="flex items-center gap-2 flex-1">
-                  <Checkbox
-                    checked={true}
-                    onCheckedChange={(checked) => handleDayOffChange(day.value, checked as boolean)}
-                    id={`dayoff-${day.value}`}
-                  />
-                  <label htmlFor={`dayoff-${day.value}`} className="text-sm font-medium text-muted-foreground cursor-pointer">
-                    Zi Liberă
-                  </label>
-                </div>
-              ) : (
-                <>
-                  <div className="flex items-center gap-2 flex-1">
-                    <span className="text-sm text-muted-foreground">De la:</span>
-                    <Input
-                      type="time"
-                      value={schedule[day.value]?.startTime || "09:00"}
-                      onChange={(e) => handleTimeChange(day.value, "startTime", e.target.value)}
-                      className="w-24"
-                    />
+              <div className="flex items-center gap-2 flex-1">
+                <span className="text-sm text-muted-foreground">De la:</span>
+                <Input
+                  type="time"
+                  value={schedule[day.value]?.startTime || "09:00"}
+                  onChange={(e) => handleTimeChange(day.value, "startTime", e.target.value)}
+                  disabled={schedule[day.value]?.isDayOff}
+                  className="w-24"
+                />
 
-                    <span className="text-sm text-muted-foreground">Până la:</span>
-                    <Input
-                      type="time"
-                      value={schedule[day.value]?.endTime || "18:00"}
-                      onChange={(e) => handleTimeChange(day.value, "endTime", e.target.value)}
-                      className="w-24"
-                    />
-                  </div>
+                <span className="text-sm text-muted-foreground">Până la:</span>
+                <Input
+                  type="time"
+                  value={schedule[day.value]?.endTime || "18:00"}
+                  onChange={(e) => handleTimeChange(day.value, "endTime", e.target.value)}
+                  disabled={schedule[day.value]?.isDayOff}
+                  className="w-24"
+                />
+              </div>
 
-                  <Checkbox
-                    checked={false}
-                    onCheckedChange={(checked) => handleDayOffChange(day.value, checked as boolean)}
-                    id={`dayoff-${day.value}`}
-                  />
-                  <label htmlFor={`dayoff-${day.value}`} className="text-sm text-muted-foreground cursor-pointer">
-                    Zi Liberă
-                  </label>
-                </>
-              )}
+              <Checkbox
+                checked={schedule[day.value]?.isDayOff || false}
+                onCheckedChange={(checked) => handleDayOffChange(day.value, checked as boolean)}
+                id={`dayoff-${day.value}`}
+              />
+              <label htmlFor={`dayoff-${day.value}`} className="text-sm text-muted-foreground cursor-pointer whitespace-nowrap">
+                Zi Liberă
+              </label>
             </div>
           ))}
 
