@@ -1,0 +1,1 @@
+ALTER TABLE `barberAvailability` ADD `isDayOff` int DEFAULT 0 NOT NULL;

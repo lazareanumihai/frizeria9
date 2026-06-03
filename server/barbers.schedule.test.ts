@@ -231,7 +231,6 @@ describe("Barber Schedule Management", () => {
       expect(error.message).toContain("permission");
     }
   });
-});
 
   it("should mark a day as off", async () => {
     const ctx = createMockContext(mockAdminUser);
