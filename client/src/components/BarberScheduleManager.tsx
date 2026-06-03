@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,13 +32,20 @@ export function BarberScheduleManager({ barberId, barberName }: BarberScheduleMa
   const [schedule, setSchedule] = useState<Record<number, DaySchedule>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [initialized, setInitialized] = useState(false);
 
-  // Fetch current schedule for all days
-  const queries = DAYS_OF_WEEK.map((day) =>
-    trpc.barbers.getAvailability.useQuery({ barberId, dayOfWeek: day.value })
+  // Fetch current schedule for all days - memoize to prevent recreating on every render
+  const queries = useMemo(
+    () =>
+      DAYS_OF_WEEK.map((day) =>
+        trpc.barbers.getAvailability.useQuery({ barberId, dayOfWeek: day.value })
+      ),
+    [barberId]
   );
 
   useEffect(() => {
+    if (initialized) return; // Only run once
+
     const newSchedule: Record<number, DaySchedule> = {};
     let allLoaded = true;
 
@@ -66,8 +73,9 @@ export function BarberScheduleManager({ barberId, barberName }: BarberScheduleMa
     if (allLoaded) {
       setSchedule(newSchedule);
       setLoading(false);
+      setInitialized(true);
     }
-  }, [queries]);
+  }, [queries, initialized]);
 
   const setAvailabilityMutation = trpc.barbers.setAvailability.useMutation();
 

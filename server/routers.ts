@@ -2,6 +2,7 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, adminProcedure } from "./_core/trpc";
+import { sdk } from "./_core/sdk";
 import { z } from "zod";
 import { createBooking, getBookingsByDate, getAllBookings, updateBookingStatus, deleteBooking, isTimeSlotAvailable, getAvailableSlots, getSettings, updateSettings, getAllServices, createService, updateService, deleteService, toggleServiceStatus, getAllServicesAdmin, reorderServices, getUserByEmail, updateUserPassword, createEmailUser, getAllBarbers, getActiveBarbers, createBarber, updateBarber, deleteBarber, toggleBarberStatus, getBarberAvailability, setBarberAvailability, getBookingsByBarber, getBookingsByBarberAndDate, getBarberPerformanceMetrics, getBookingTrendsByPeriod, getServiceDistribution, getBookingHeatmapData, getCancellationRateByBarber, reorderBarbers } from "./db";
 import bcrypt from "bcrypt";
@@ -31,6 +32,17 @@ export const appRouter = router({
         if (!isPasswordValid) {
           throw new Error("Invalid email or password");
         }
+
+        // Create JWT token and set as session cookie
+        const appId = (process.env.VITE_APP_ID ?? "") as string;
+        const token = await sdk.signSession({
+          openId: user.openId,
+          appId,
+          name: user.name || "",
+        });
+
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, token, cookieOptions);
 
         return { success: true, user };
       }),
