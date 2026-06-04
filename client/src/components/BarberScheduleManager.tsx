@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,50 +32,55 @@ export function BarberScheduleManager({ barberId, barberName }: BarberScheduleMa
   const [schedule, setSchedule] = useState<Record<number, DaySchedule>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [initialized, setInitialized] = useState(false);
 
-  // Fetch current schedule for all days - memoize to prevent recreating on every render
-  const queries = useMemo(
-    () =>
-      DAYS_OF_WEEK.map((day) =>
-        trpc.barbers.getAvailability.useQuery({ barberId, dayOfWeek: day.value })
-      ),
-    [barberId]
+  // Fetch availability for each day separately
+  const dayQueries = DAYS_OF_WEEK.map((day) =>
+    trpc.barbers.getAvailability.useQuery({ barberId, dayOfWeek: day.value })
   );
 
+  // Load schedule from database on mount
   useEffect(() => {
-    if (initialized) return; // Only run once
+    const loadSchedule = async () => {
+      try {
+        const newSchedule: Record<number, DaySchedule> = {};
+        let allLoaded = true;
 
-    const newSchedule: Record<number, DaySchedule> = {};
-    let allLoaded = true;
+        for (let i = 0; i < DAYS_OF_WEEK.length; i++) {
+          const query = dayQueries[i];
+          if (query.isLoading) {
+            allLoaded = false;
+            break;
+          }
 
-    queries.forEach((query, index) => {
-      if (query.isLoading) {
-        allLoaded = false;
-      } else if (query.data && Array.isArray(query.data) && query.data.length > 0) {
-        // query.data is an array, get the first element
-        const availability = query.data[0];
-        newSchedule[DAYS_OF_WEEK[index].value] = {
-          startTime: availability.startTime || "09:00",
-          endTime: availability.endTime || "18:00",
-          isDayOff: Boolean(availability.isDayOff),
-        };
-      } else {
-        // Default hours if no schedule set
-        newSchedule[DAYS_OF_WEEK[index].value] = {
-          startTime: "09:00",
-          endTime: "18:00",
-          isDayOff: false,
-        };
+          if (query.data && Array.isArray(query.data) && query.data.length > 0) {
+            const availability = query.data[0];
+            newSchedule[DAYS_OF_WEEK[i].value] = {
+              startTime: availability.startTime || "09:00",
+              endTime: availability.endTime || "18:00",
+              isDayOff: Boolean(availability.isDayOff),
+            };
+          } else {
+            // Default hours if no schedule set
+            newSchedule[DAYS_OF_WEEK[i].value] = {
+              startTime: "09:00",
+              endTime: "18:00",
+              isDayOff: false,
+            };
+          }
+        }
+
+        if (allLoaded) {
+          setSchedule(newSchedule);
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error("Error loading schedule:", error);
+        setLoading(false);
       }
-    });
+    };
 
-    if (allLoaded) {
-      setSchedule(newSchedule);
-      setLoading(false);
-      setInitialized(true);
-    }
-  }, [queries, initialized]);
+    loadSchedule();
+  }, [barberId]);
 
   const setAvailabilityMutation = trpc.barbers.setAvailability.useMutation();
 

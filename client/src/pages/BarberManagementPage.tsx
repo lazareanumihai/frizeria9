@@ -381,6 +381,7 @@ export default function BarberManagementPage() {
             <div className="grid gap-4">
               {(isReorderMode ? sortedBarbers : barbers).map((barber: any) => (
                 <Card
+                  key={barber.id}
                   draggable={isReorderMode}
                   onDragStart={(e: any) => isReorderMode && handleBarberDragStart(e, barber.id)}
                   onDragOver={isReorderMode ? handleBarberDragOver : undefined}
