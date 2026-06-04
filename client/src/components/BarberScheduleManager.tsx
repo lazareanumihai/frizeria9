@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Clock, Save } from "lucide-react";
+import { format, addDays, startOfWeek } from "date-fns";
 
 const DAYS_OF_WEEK = [
   { value: 0, label: "Duminică" },
@@ -30,56 +31,29 @@ interface DaySchedule {
 
 export function BarberScheduleManager({ barberId, barberName }: BarberScheduleManagerProps) {
   const [schedule, setSchedule] = useState<Record<number, DaySchedule>>({});
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Fetch availability for each day separately
-  const dayQueries = DAYS_OF_WEEK.map((day) =>
-    trpc.barbers.getAvailability.useQuery({ barberId, dayOfWeek: day.value })
-  );
+  // Calculate dates for the current week
+  const getWeekDates = () => {
+    const today = new Date();
+    const weekStart = startOfWeek(today, { weekStartsOn: 0 }); // Start on Sunday
+    return DAYS_OF_WEEK.map((day) => addDays(weekStart, day.value));
+  };
 
-  // Load schedule from database on mount
+  const weekDates = getWeekDates();
+
+  // Initialize schedule with default values
   useEffect(() => {
-    const loadSchedule = async () => {
-      try {
-        const newSchedule: Record<number, DaySchedule> = {};
-        let allLoaded = true;
-
-        for (let i = 0; i < DAYS_OF_WEEK.length; i++) {
-          const query = dayQueries[i];
-          if (query.isLoading) {
-            allLoaded = false;
-            break;
-          }
-
-          if (query.data && Array.isArray(query.data) && query.data.length > 0) {
-            const availability = query.data[0];
-            newSchedule[DAYS_OF_WEEK[i].value] = {
-              startTime: availability.startTime || "09:00",
-              endTime: availability.endTime || "18:00",
-              isDayOff: Boolean(availability.isDayOff),
-            };
-          } else {
-            // Default hours if no schedule set
-            newSchedule[DAYS_OF_WEEK[i].value] = {
-              startTime: "09:00",
-              endTime: "18:00",
-              isDayOff: false,
-            };
-          }
-        }
-
-        if (allLoaded) {
-          setSchedule(newSchedule);
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error("Error loading schedule:", error);
-        setLoading(false);
-      }
-    };
-
-    loadSchedule();
+    const initSchedule: Record<number, DaySchedule> = {};
+    for (const day of DAYS_OF_WEEK) {
+      initSchedule[day.value] = {
+        startTime: "09:00",
+        endTime: "18:00",
+        isDayOff: false,
+      };
+    }
+    setSchedule(initSchedule);
   }, [barberId]);
 
   const setAvailabilityMutation = trpc.barbers.setAvailability.useMutation();
@@ -126,17 +100,6 @@ export function BarberScheduleManager({ barberId, barberName }: BarberScheduleMa
     }
   };
 
-  if (loading) {
-    return (
-      <Card>
-        <CardContent className="py-8 text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2" />
-          <p className="text-muted-foreground text-sm">Se încarcă program...</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <Card>
       <CardHeader>
@@ -147,44 +110,49 @@ export function BarberScheduleManager({ barberId, barberName }: BarberScheduleMa
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {DAYS_OF_WEEK.map((day) => (
-            <div key={day.value} className="flex items-center gap-4 p-3 bg-muted rounded-lg">
-              <div className="w-24">
-                <Badge variant="outline" className="w-full text-center justify-center">
-                  {day.label}
-                </Badge>
-              </div>
+          {DAYS_OF_WEEK.map((day, index) => {
+            const dayDate = weekDates[index];
+            const formattedDate = format(dayDate, "dd.MM.yyyy");
+            return (
+              <div key={day.value} className="flex items-center gap-4 p-3 bg-muted rounded-lg">
+                <div className="w-32">
+                  <Badge variant="outline" className="w-full text-center justify-center flex flex-col gap-1 h-auto py-2">
+                    <span className="text-sm font-medium">{day.label}</span>
+                    <span className="text-xs font-normal text-muted-foreground">{formattedDate}</span>
+                  </Badge>
+                </div>
 
-              <div className="flex items-center gap-2 flex-1">
-                <span className="text-sm text-muted-foreground">De la:</span>
-                <Input
-                  type="time"
-                  value={schedule[day.value]?.startTime || "09:00"}
-                  onChange={(e) => handleTimeChange(day.value, "startTime", e.target.value)}
-                  disabled={schedule[day.value]?.isDayOff}
-                  className="w-24"
+                <div className="flex items-center gap-2 flex-1">
+                  <span className="text-sm text-muted-foreground">De la:</span>
+                  <Input
+                    type="time"
+                    value={schedule[day.value]?.startTime || "09:00"}
+                    onChange={(e) => handleTimeChange(day.value, "startTime", e.target.value)}
+                    disabled={schedule[day.value]?.isDayOff}
+                    className="w-24"
+                  />
+
+                  <span className="text-sm text-muted-foreground">Până la:</span>
+                  <Input
+                    type="time"
+                    value={schedule[day.value]?.endTime || "18:00"}
+                    onChange={(e) => handleTimeChange(day.value, "endTime", e.target.value)}
+                    disabled={schedule[day.value]?.isDayOff}
+                    className="w-24"
+                  />
+                </div>
+
+                <Checkbox
+                  checked={schedule[day.value]?.isDayOff || false}
+                  onCheckedChange={(checked) => handleDayOffChange(day.value, checked as boolean)}
+                  id={`dayoff-${day.value}`}
                 />
-
-                <span className="text-sm text-muted-foreground">Până la:</span>
-                <Input
-                  type="time"
-                  value={schedule[day.value]?.endTime || "18:00"}
-                  onChange={(e) => handleTimeChange(day.value, "endTime", e.target.value)}
-                  disabled={schedule[day.value]?.isDayOff}
-                  className="w-24"
-                />
+                <label htmlFor={`dayoff-${day.value}`} className="text-sm text-muted-foreground cursor-pointer whitespace-nowrap">
+                  Zi Liberă
+                </label>
               </div>
-
-              <Checkbox
-                checked={schedule[day.value]?.isDayOff || false}
-                onCheckedChange={(checked) => handleDayOffChange(day.value, checked as boolean)}
-                id={`dayoff-${day.value}`}
-              />
-              <label htmlFor={`dayoff-${day.value}`} className="text-sm text-muted-foreground cursor-pointer whitespace-nowrap">
-                Zi Liberă
-              </label>
-            </div>
-          ))}
+            );
+          })}
 
           <Button
             onClick={handleSaveSchedule}

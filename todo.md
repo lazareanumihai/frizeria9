@@ -325,3 +325,13 @@
   - [x] Updated loginEmail endpoint to create and set JWT token
   - [x] Session cookie now persists authentication state
   - [x] Admin can now access protected routes after login
+
+
+## Display Date in Schedule Manager (Completed)
+- [x] Add date display under each day in BarberScheduleManager
+  - [x] Calculate date for each day of the week (starting from current week)
+  - [x] Format date as DD.MM.YYYY (ex: 05.06.2026)
+  - [x] Display date under day name in small text
+  - [x] Update component to show both day name and date
+  - [x] Verified in browser: dates display correctly under each day
+  - [x] Example: Vineri 05.06.2026 displays as requested
