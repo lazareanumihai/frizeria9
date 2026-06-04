@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Clock, Save, CheckCircle, AlertCircle } from "lucide-react";
+import { Clock, Save } from "lucide-react";
 import { format, addDays, startOfWeek } from "date-fns";
 
 const DAYS_OF_WEEK = [
@@ -33,8 +33,6 @@ export function BarberScheduleManager({ barberId, barberName }: BarberScheduleMa
   const [schedule, setSchedule] = useState<Record<number, DaySchedule>>({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Calculate dates for the current week
   const getWeekDates = () => {
@@ -82,8 +80,6 @@ export function BarberScheduleManager({ barberId, barberName }: BarberScheduleMa
 
   const handleSaveSchedule = async () => {
     setSaving(true);
-    setSaveSuccess(false);
-    setSaveError(null);
     try {
       const promises = Object.entries(schedule).map(([dayStr, times]) => {
         const dayOfWeek = parseInt(dayStr);
@@ -98,15 +94,9 @@ export function BarberScheduleManager({ barberId, barberName }: BarberScheduleMa
 
       await Promise.all(promises);
       setSaving(false);
-      setSaveSuccess(true);
-      // Reset success message after 3 seconds
-      setTimeout(() => setSaveSuccess(false), 3000);
     } catch (error) {
       console.error("Error saving schedule:", error);
       setSaving(false);
-      setSaveError("A apărut o eroare la salvarea programului.");
-      // Reset error message after 3 seconds
-      setTimeout(() => setSaveError(null), 3000);
     }
   };
 
@@ -164,41 +154,13 @@ export function BarberScheduleManager({ barberId, barberName }: BarberScheduleMa
             );
           })}
 
-          {saveSuccess && (
-            <div className="flex items-center gap-2 p-3 bg-green-50 text-green-700 rounded-lg border border-green-200">
-              <CheckCircle className="w-5 h-5" />
-              <span className="text-sm">Programul a fost salvat cu succes!</span>
-            </div>
-          )}
-
-          {saveError && (
-            <div className="flex items-center gap-2 p-3 bg-red-50 text-red-700 rounded-lg border border-red-200">
-              <AlertCircle className="w-5 h-5" />
-              <span className="text-sm">{saveError}</span>
-            </div>
-          )}
-
           <Button
             onClick={handleSaveSchedule}
-            disabled={saving || saveSuccess}
+            disabled={saving}
             className="w-full mt-6"
           >
-            {saveSuccess ? (
-              <>
-                <CheckCircle className="w-4 h-4 mr-2" />
-                Salvat cu succes!
-              </>
-            ) : saving ? (
-              <>
-                <Save className="w-4 h-4 mr-2" />
-                Se salvează...
-              </>
-            ) : (
-              <>
-                <Save className="w-4 h-4 mr-2" />
-                Salvează Program
-              </>
-            )}
+            <Save className="w-4 h-4 mr-2" />
+            {saving ? "Se salvează..." : "Salvează Program"}
           </Button>
         </div>
       </CardContent>
