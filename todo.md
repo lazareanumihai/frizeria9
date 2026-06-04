@@ -335,3 +335,14 @@
   - [x] Update component to show both day name and date
   - [x] Verified in browser: dates display correctly under each day
   - [x] Example: Vineri 05.06.2026 displays as requested
+
+
+## Fix Day-Off Functionality in Booking System (Completed)
+- [x] Fix backend to return special marker for day off
+  - [x] Modified `getAvailableSlots` to return `["__DAY_OFF__"]` when barber has day off
+  - [x] Updated `BookingModal` to check for day off marker
+  - [x] Added message "Frizerul nu este disponibil în această zi" in red
+- [x] Tested in browser:
+  - [x] Set ionut pop as day off on Friday (Vineri 05.06.2026)
+  - [x] Verified system blocks bookings and shows correct message
+  - [x] Confirmed no time slots can be selected when day off is active

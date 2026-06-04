@@ -216,6 +216,24 @@ export async function getAvailableSlots(bookingDate: Date, barberId: number | nu
   const startOfDay = new Date(Date.UTC(dateOnly.getFullYear(), dateOnly.getMonth(), dateOnly.getDate(), 0, 0, 0, 0));
   const endOfDay = new Date(Date.UTC(dateOnly.getFullYear(), dateOnly.getMonth(), dateOnly.getDate(), 23, 59, 59, 999));
 
+  const dayOfWeek = dateOnly.getDay();
+
+  // If a specific barber is requested, check if they have a day off
+  if (barberId !== null) {
+    const availability = await db
+      .select()
+      .from(barberAvailability)
+      .where(and(
+        eq(barberAvailability.barberId, barberId),
+        eq(barberAvailability.dayOfWeek, dayOfWeek)
+      ));
+
+    // If the barber has a day off on this day, return special marker
+    if (availability.length > 0 && availability[0].isDayOff === 1) {
+      return ["__DAY_OFF__"];
+    }
+  }
+
   const conditions = [
     gte(bookings.bookingDate, startOfDay),
     lte(bookings.bookingDate, endOfDay)

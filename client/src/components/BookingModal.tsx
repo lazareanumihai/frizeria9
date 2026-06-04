@@ -132,6 +132,10 @@ export default function BookingModal({ open, onClose, selectedBarberId }: Bookin
     return `${date.getDate()} ${MONTH_NAMES[date.getMonth()]} ${date.getFullYear()}`;
   };
 
+  const isDayOff = () => {
+    return occupiedSlots.includes("__DAY_OFF__");
+  };
+
   const isTimeSlotOccupied = (slot: string) => {
     return occupiedSlots.includes(slot);
   };
@@ -413,6 +417,11 @@ export default function BookingModal({ open, onClose, selectedBarberId }: Bookin
                   <div className="text-sm text-muted-foreground mb-4">
                     Data selectată: <span className="font-semibold text-foreground">{formatDate(selectedDate!)}</span>
                   </div>
+                  {isDayOff() ? (
+                    <div className="text-center py-8 text-red-500">
+                      <p className="font-semibold">Frizerul nu este disponibil în această zi</p>
+                    </div>
+                  ) : (
                   <div className="grid grid-cols-4 gap-2">
                     {TIME_SLOTS.map((slot) => {
                       const occupied = isTimeSlotOccupied(slot);
@@ -444,6 +453,7 @@ export default function BookingModal({ open, onClose, selectedBarberId }: Bookin
                       );
                     })}
                   </div>
+                  )}
                 </div>
               )}
 
