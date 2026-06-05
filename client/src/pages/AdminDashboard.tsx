@@ -111,6 +111,15 @@ export default function AdminDashboard() {
             <BarChart3 className="w-4 h-4" />
             Analytics
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setLocation("/admin/schedule")}
+            className="gap-2"
+          >
+            <Scissors className="w-4 h-4" />
+            Program
+          </Button>
         </div>
       </div>
 
