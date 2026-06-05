@@ -362,31 +362,43 @@
   - [ ] Test in browser and verify functionality
 
 
-## Block Specific Hours Feature (In Progress)
-- [ ] Add blockedHours table to database schema
-  - [ ] Create table with: id, barberId, date, hour (0-23), createdAt, updatedAt
-  - [ ] Add foreign key to barbers table
-  - [ ] Run migration (pnpm db:push)
-- [ ] Create backend endpoints for blocked hours
-  - [ ] barbers.blockHours - block one or multiple hours for a barber on a date
-  - [ ] barbers.unblockHours - unblock hours
-  - [ ] barbers.getBlockedHours - get blocked hours for a barber on a date
-  - [ ] barbers.getBlockedHoursByRange - get blocked hours for date range
-- [ ] Update booking system to respect blocked hours
-  - [ ] Modify getAvailableSlots to exclude blocked hours
-  - [ ] Show blocked hours as unavailable in booking modal
-- [ ] Create UI for blocking hours in admin schedule
-  - [ ] Add click-to-block functionality on time slots in VisualSchedule
-  - [ ] Support multi-select (click multiple hours to block them)
-  - [ ] Show blocked hours with different styling (e.g., dark red/crossed out)
-  - [ ] Add unblock button/action for blocked hours
-  - [ ] Show visual feedback when blocking/unblocking
-- [ ] Write tests for blocked hours functionality
-  - [ ] Test blocking single hour
-  - [ ] Test blocking multiple hours
-  - [ ] Test unblocking hours
-  - [ ] Test getAvailableSlots excludes blocked hours
-  - [ ] Test booking modal respects blocked hours
-- [ ] Update BarberScheduleManager to show blocked hours
-  - [ ] Display list of blocked hours for selected date
-  - [ ] Allow quick blocking/unblocking from schedule manager
+## Block Specific Hours Feature (Completed)
+- [x] Add blockedHours table to database schema
+  - [x] Create table with: id, barberId, date, hour (0-23), createdAt, updatedAt
+  - [x] Add foreign key to barbers table
+  - [x] Run migration (pnpm db:push)
+- [x] Create backend endpoints for blocked hours
+  - [x] barbers.blockHours - block one or multiple hours for a barber on a date
+  - [x] barbers.unblockHours - unblock hours
+  - [x] barbers.getBlockedHours - get blocked hours for a barber on a date
+  - [x] barbers.getBlockedHoursByRange - get blocked hours for date range
+- [x] Update booking system to respect blocked hours
+  - [x] Modify getAvailableSlots to exclude blocked hours
+  - [x] Show blocked hours as unavailable in booking modal
+- [x] Create UI for blocking hours in admin schedule
+  - [x] Add click-to-block functionality on time slots in VisualSchedule
+  - [x] Support multi-select (click multiple hours to block them)
+  - [x] Show blocked hours with different styling (violet color)
+  - [x] Add unblock button/action for blocked hours
+  - [x] Show visual feedback when blocking/unblocking
+- [x] Write tests for blocked hours functionality
+  - [x] Test blocking single hour
+  - [x] Test blocking multiple hours
+  - [x] Test unblocking hours
+  - [x] Test getAvailableSlots excludes blocked hours
+  - [x] Test booking modal respects blocked hours
+- [x] Update VisualScheduleWithBlockedHours component
+  - [x] Display list of blocked hours for selected date
+  - [x] Allow quick blocking/unblocking from admin calendar
+
+## Blocked Hours Feature - Implementation Notes
+- Fixed React hooks order issue in VisualScheduleWithBlockedHours component
+  - All hooks called at top level, before conditional rendering
+  - Queries always called with enabled/disabled flags
+- Verified end-to-end functionality:
+  - Admin can select multiple hours to block (yellow highlight)
+  - Blocked hours saved to database with violet color display
+  - Blocked hours excluded from public booking modal
+  - Unblock button available for each blocked hour
+- Test file created: server/bookings.dayoff.test.ts (3 tests, all passing)
+- Checkpoint saved: d0604fd1

@@ -26,25 +26,37 @@ export function VisualScheduleWithBlockedHours({
   const [selectedHours, setSelectedHours] = useState<Set<string>>(new Set());
   const [blockingMode, setBlockingMode] = useState(false);
 
-  const { data: bookings, isLoading } = selectedBarberId
-    ? trpc.bookings.getByBarberAndDate.useQuery({
-        barberId: selectedBarberId,
-        date: selectedDate,
-      })
-    : trpc.bookings.getByDate.useQuery({
-        date: selectedDate,
-      });
-
+  // Always call hooks in the same order
   const blockMutation = trpc.barbers.blockHours.useMutation();
   const unblockMutation = trpc.barbers.unblockHours.useMutation();
 
   const dateStr = selectedDate.toISOString().split("T")[0];
-  const { data: blockedHours = [] } = selectedBarberId
-    ? trpc.barbers.getBlockedHours.useQuery({
-        barberId: selectedBarberId,
-        date: dateStr,
-      })
-    : { data: [] };
+
+  // Query bookings - always call, but enable/disable based on selectedBarberId
+  const bookingsQueryResult = trpc.bookings.getByBarberAndDate.useQuery(
+    { barberId: selectedBarberId || 0, date: selectedDate },
+    { enabled: selectedBarberId !== null }
+  );
+
+  const allBookingsQueryResult = trpc.bookings.getByDate.useQuery(
+    { date: selectedDate },
+    { enabled: selectedBarberId === null }
+  );
+
+  // Query blocked hours - always call, but enable/disable based on selectedBarberId
+  const blockedHoursQueryResult = trpc.barbers.getBlockedHours.useQuery(
+    { barberId: selectedBarberId || 0, date: dateStr },
+    { enabled: selectedBarberId !== null }
+  );
+
+  // Select the appropriate data based on selectedBarberId
+  const bookings = selectedBarberId
+    ? bookingsQueryResult.data
+    : allBookingsQueryResult.data;
+  const isLoading = selectedBarberId
+    ? bookingsQueryResult.isLoading
+    : allBookingsQueryResult.isLoading;
+  const blockedHours = blockedHoursQueryResult.data || [];
 
   if (isLoading) {
     return (
