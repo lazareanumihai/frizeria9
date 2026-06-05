@@ -1,6 +1,6 @@
 
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, bookings, InsertBooking, settings, InsertSetting, services, InsertService, Service, barbers, InsertBarber, Barber, barberAvailability, InsertBarberAvailability } from "../drizzle/schema";
+import { InsertUser, users, bookings, InsertBooking, settings, InsertSetting, services, InsertService, Service, barbers, InsertBarber, Barber, barberAvailability, InsertBarberAvailability, blockedHours, InsertBlockedHours, BlockedHours } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { eq, and, gte, lte, sql } from "drizzle-orm";
 import { count, sum, avg } from "drizzle-orm";
@@ -216,7 +216,8 @@ export async function getAvailableSlots(bookingDate: Date, barberId: number | nu
   const startOfDay = new Date(Date.UTC(dateOnly.getFullYear(), dateOnly.getMonth(), dateOnly.getDate(), 0, 0, 0, 0));
   const endOfDay = new Date(Date.UTC(dateOnly.getFullYear(), dateOnly.getMonth(), dateOnly.getDate(), 23, 59, 59, 999));
 
-  const dayOfWeek = dateOnly.getDay();
+  // Convert to Monday-first day of week (0 = Monday, 6 = Sunday) to match admin schedule storage
+  const dayOfWeek = dateOnly.getDay() === 0 ? 6 : dateOnly.getDay() - 1;
 
   // If a specific barber is requested, check if they have a day off
   if (barberId !== null) {
@@ -248,7 +249,25 @@ export async function getAvailableSlots(bookingDate: Date, barberId: number | nu
     .from(bookings)
     .where(and(...conditions));
 
-  return occupiedSlots.map(slot => slot.bookingTime);
+  // Get blocked hours for this barber on this date
+  const dateStr = dateOnly.toISOString().split('T')[0]; // YYYY-MM-DD format
+  const blockedHoursList = barberId !== null 
+    ? await getBlockedHours(barberId, dateStr)
+    : [];
+
+  // Convert occupied slots and blocked hours to a set for quick lookup
+  const unavailableSlots = new Set<string>();
+  
+  // Add occupied time slots
+  occupiedSlots.forEach(slot => unavailableSlots.add(slot.bookingTime));
+  
+  // Add blocked hours (convert hour to HH:00 format)
+  blockedHoursList.forEach(blocked => {
+    const hour = String(blocked.hour).padStart(2, '0');
+    unavailableSlots.add(`${hour}:00`);
+  });
+
+  return Array.from(unavailableSlots).sort();
 }
 
 // Settings queries
@@ -870,4 +889,168 @@ export async function reorderBarbers(barberIds: number[]) {
   );
 
   return Promise.all(updates);
+}
+
+
+/**
+ * Block specific hours for a barber on a given date
+ * @param barberId - ID of the barber
+ * @param date - Date in YYYY-MM-DD format
+ * @param hours - Array of hours (0-23) to block
+ * @param reason - Optional reason for blocking
+ */
+export async function blockHours(
+  barberId: number,
+  date: string,
+  hours: number[],
+  reason?: string
+): Promise<BlockedHours[]> {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  // Insert blocked hours (ignore duplicates)
+  const insertPromises = hours.map(hour =>
+    db.insert(blockedHours).values({
+      barberId,
+      date: date as any, // Date string in YYYY-MM-DD format
+      hour,
+      reason: reason || null,
+    }).onDuplicateKeyUpdate({
+      set: { reason: reason || null }
+    })
+  );
+
+  await Promise.all(insertPromises);
+
+  // Return the blocked hours that were created
+  return db
+    .select()
+    .from(blockedHours)
+    .where(
+      and(
+        eq(blockedHours.barberId, barberId),
+        eq(blockedHours.date, date as any)
+      )
+    )
+    .orderBy(blockedHours.hour);
+}
+
+/**
+ * Unblock specific hours for a barber on a given date
+ * @param barberId - ID of the barber
+ * @param date - Date in YYYY-MM-DD format
+ * @param hours - Array of hours (0-23) to unblock
+ */
+export async function unblockHours(
+  barberId: number,
+  date: string,
+  hours: number[]
+): Promise<void> {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  // Delete blocked hours
+  const deletePromises = hours.map(hour =>
+    db
+      .delete(blockedHours)
+      .where(
+        and(
+          eq(blockedHours.barberId, barberId),
+          eq(blockedHours.date, date as any),
+          eq(blockedHours.hour, hour)
+        )
+      )
+  );
+
+  await Promise.all(deletePromises);
+}
+
+/**
+ * Get blocked hours for a barber on a specific date
+ * @param barberId - ID of the barber
+ * @param date - Date in YYYY-MM-DD format
+ */
+export async function getBlockedHours(
+  barberId: number,
+  date: string
+): Promise<BlockedHours[]> {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  return db
+    .select()
+    .from(blockedHours)
+    .where(
+      and(
+        eq(blockedHours.barberId, barberId),
+        eq(blockedHours.date, date as any)
+      )
+    )
+    .orderBy(blockedHours.hour);
+}
+
+/**
+ * Get blocked hours for a barber within a date range
+ * @param barberId - ID of the barber
+ * @param startDate - Start date in YYYY-MM-DD format
+ * @param endDate - End date in YYYY-MM-DD format
+ */
+export async function getBlockedHoursByRange(
+  barberId: number,
+  startDate: string,
+  endDate: string
+): Promise<BlockedHours[]> {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  return db
+    .select()
+    .from(blockedHours)
+    .where(
+      and(
+        eq(blockedHours.barberId, barberId),
+        gte(blockedHours.date, startDate as any),
+        lte(blockedHours.date, endDate as any)
+      )
+    )
+    .orderBy(blockedHours.date, blockedHours.hour);
+}
+
+/**
+ * Check if a specific hour is blocked for a barber on a date
+ * @param barberId - ID of the barber
+ * @param date - Date in YYYY-MM-DD format
+ * @param hour - Hour (0-23)
+ */
+export async function isHourBlocked(
+  barberId: number,
+  date: string,
+  hour: number
+): Promise<boolean> {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  const result = await db
+    .select()
+    .from(blockedHours)
+    .where(
+      and(
+        eq(blockedHours.barberId, barberId),
+        eq(blockedHours.date, date as any),
+        eq(blockedHours.hour, hour)
+      )
+    )
+    .limit(1);
+
+  return result.length > 0;
 }

@@ -346,3 +346,47 @@
   - [x] Set ionut pop as day off on Friday (Vineri 05.06.2026)
   - [x] Verified system blocks bookings and shows correct message
   - [x] Confirmed no time slots can be selected when day off is active
+
+
+## Redesign Program de Lucru as Weekly Calendar (In Progress)
+- [ ] Rewrite BarberScheduleManager component with weekly calendar layout
+  - [ ] Add frizer selector dropdown
+  - [ ] Add "Azi" tab for today view
+  - [ ] Add week navigation (< date range >)
+  - [ ] Display 7 day columns (LUN, MAR, MIE, JOI, VIN, SÂM, DUM)
+  - [ ] Show date under each day (ex: "JOI 4")
+  - [ ] Add day-off toggle for each day
+  - [ ] Display hourly time slots (08:00 - 20:00) for each day
+  - [ ] Color coding: Green (disponibil), Pink (blocat), Gray (zi liberă)
+  - [ ] Save button to persist changes
+  - [ ] Test in browser and verify functionality
+
+
+## Block Specific Hours Feature (In Progress)
+- [ ] Add blockedHours table to database schema
+  - [ ] Create table with: id, barberId, date, hour (0-23), createdAt, updatedAt
+  - [ ] Add foreign key to barbers table
+  - [ ] Run migration (pnpm db:push)
+- [ ] Create backend endpoints for blocked hours
+  - [ ] barbers.blockHours - block one or multiple hours for a barber on a date
+  - [ ] barbers.unblockHours - unblock hours
+  - [ ] barbers.getBlockedHours - get blocked hours for a barber on a date
+  - [ ] barbers.getBlockedHoursByRange - get blocked hours for date range
+- [ ] Update booking system to respect blocked hours
+  - [ ] Modify getAvailableSlots to exclude blocked hours
+  - [ ] Show blocked hours as unavailable in booking modal
+- [ ] Create UI for blocking hours in admin schedule
+  - [ ] Add click-to-block functionality on time slots in VisualSchedule
+  - [ ] Support multi-select (click multiple hours to block them)
+  - [ ] Show blocked hours with different styling (e.g., dark red/crossed out)
+  - [ ] Add unblock button/action for blocked hours
+  - [ ] Show visual feedback when blocking/unblocking
+- [ ] Write tests for blocked hours functionality
+  - [ ] Test blocking single hour
+  - [ ] Test blocking multiple hours
+  - [ ] Test unblocking hours
+  - [ ] Test getAvailableSlots excludes blocked hours
+  - [ ] Test booking modal respects blocked hours
+- [ ] Update BarberScheduleManager to show blocked hours
+  - [ ] Display list of blocked hours for selected date
+  - [ ] Allow quick blocking/unblocking from schedule manager

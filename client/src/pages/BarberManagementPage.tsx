@@ -516,6 +516,7 @@ export default function BarberManagementPage() {
                 <BarberScheduleManager
                   barberId={scheduleBarber.id}
                   barberName={scheduleBarber.name}
+                  onClose={() => setScheduleBarber(null)}
                 />
               </CardContent>
             </Card>

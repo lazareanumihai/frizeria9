@@ -9,6 +9,7 @@ import { ChevronLeft, ChevronRight, Trash2, CheckCircle2, Clock, X, Settings, Wr
 import { format, addDays } from "date-fns";
 import { ro } from "date-fns/locale";
 import { useLocation } from "wouter";
+import { VisualScheduleWithBlockedHours } from "@/components/VisualScheduleWithBlockedHours";
 
 const TIME_SLOTS = [
   "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
@@ -150,7 +151,7 @@ export default function AdminDashboard() {
 
           {/* Right: Visual Schedule Grid */}
           <div className="lg:col-span-2">
-            <VisualSchedule selectedDate={selectedDate} selectedBarberId={selectedBarberId} getServiceName={getServiceName} />
+            <VisualScheduleWithBlockedHours selectedDate={selectedDate} selectedBarberId={selectedBarberId} getServiceName={getServiceName} />
           </div>
         </div>
 
@@ -321,90 +322,7 @@ function BookingsList({
   );
 }
 
-function VisualSchedule({ selectedDate, selectedBarberId, getServiceName }: { selectedDate: Date; selectedBarberId: number | null; getServiceName: (serviceType: string) => string }) {
-  const { data: bookings, isLoading } = selectedBarberId
-    ? trpc.bookings.getByBarberAndDate.useQuery({
-        barberId: selectedBarberId,
-        date: selectedDate,
-      })
-    : trpc.bookings.getByDate.useQuery({
-        date: selectedDate,
-      });
 
-  if (isLoading) {
-    return (
-      <Card>
-        <CardContent className="py-12 flex justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // Create a map of occupied slots
-  const occupiedMap = new Map<string, any>();
-  if (bookings) {
-    bookings.forEach((booking) => {
-      occupiedMap.set(booking.bookingTime, booking);
-    });
-  }
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">Orar Zilei</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-4 gap-2">
-          {TIME_SLOTS.map((slot) => {
-            const booking = occupiedMap.get(slot);
-            const isOccupied = !!booking;
-
-            return (
-              <div
-                key={slot}
-                className={`p-3 rounded-lg border-2 transition-all ${
-                  isOccupied
-                    ? "border-red-500 bg-red-500/10"
-                    : "border-green-500 bg-green-500/10"
-                }`}
-              >
-                <p className="text-sm font-semibold text-foreground text-center mb-1">
-                  {slot}
-                </p>
-                {isOccupied ? (
-                  <div className="text-xs text-center">
-                    <p className="font-medium text-red-700 truncate">
-                      {booking.clientName.split(" ")[0]}
-                    </p>
-                    <p className="text-red-600 text-xs">
-                      {getServiceName(booking.serviceType)}
-                    </p>
-                    <StatusBadgeSmall status={booking.status} />
-                  </div>
-                ) : (
-                  <p className="text-xs text-center text-green-600 font-medium">Liber</p>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Legend */}
-        <div className="mt-6 pt-4 border-t border-border flex gap-6 justify-center">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded border-2 border-green-500 bg-green-500/10" />
-            <span className="text-xs text-muted-foreground">Liber</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded border-2 border-red-500 bg-red-500/10" />
-            <span className="text-xs text-muted-foreground">Ocupat</span>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
 
 function StatusBadge({ status }: { status: string }) {
   const variants: Record<string, { label: string; className: string; icon: React.ReactNode }> = {

@@ -4,7 +4,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, adminProcedure } from "./_core/trpc";
 import { sdk } from "./_core/sdk";
 import { z } from "zod";
-import { createBooking, getBookingsByDate, getAllBookings, updateBookingStatus, deleteBooking, isTimeSlotAvailable, getAvailableSlots, getSettings, updateSettings, getAllServices, createService, updateService, deleteService, toggleServiceStatus, getAllServicesAdmin, reorderServices, getUserByEmail, updateUserPassword, createEmailUser, getAllBarbers, getActiveBarbers, createBarber, updateBarber, deleteBarber, toggleBarberStatus, getBarberAvailability, setBarberAvailability, getBookingsByBarber, getBookingsByBarberAndDate, getBarberPerformanceMetrics, getBookingTrendsByPeriod, getServiceDistribution, getBookingHeatmapData, getCancellationRateByBarber, reorderBarbers } from "./db";
+import { createBooking, getBookingsByDate, getAllBookings, updateBookingStatus, deleteBooking, isTimeSlotAvailable, getAvailableSlots, getSettings, updateSettings, getAllServices, createService, updateService, deleteService, toggleServiceStatus, getAllServicesAdmin, reorderServices, getUserByEmail, updateUserPassword, createEmailUser, getAllBarbers, getActiveBarbers, createBarber, updateBarber, deleteBarber, toggleBarberStatus, getBarberAvailability, setBarberAvailability, getBookingsByBarber, getBookingsByBarberAndDate, getBarberPerformanceMetrics, getBookingTrendsByPeriod, getServiceDistribution, getBookingHeatmapData, getCancellationRateByBarber, reorderBarbers, blockHours, unblockHours, getBlockedHours, getBlockedHoursByRange } from "./db";
 import bcrypt from "bcrypt";
 import { storagePut } from "./storage";
 
@@ -258,6 +258,18 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         return reorderBarbers(input.barberIds);
       }),
+    blockHours: adminProcedure
+      .input(z.object({ barberId: z.number(), date: z.string(), hours: z.array(z.number()), reason: z.string().optional() }))
+      .mutation(async ({ input }) => blockHours(input.barberId, input.date, input.hours, input.reason)),
+    unblockHours: adminProcedure
+      .input(z.object({ barberId: z.number(), date: z.string(), hours: z.array(z.number()) }))
+      .mutation(async ({ input }) => unblockHours(input.barberId, input.date, input.hours)),
+    getBlockedHours: adminProcedure
+      .input(z.object({ barberId: z.number(), date: z.string() }))
+      .query(async ({ input }) => getBlockedHours(input.barberId, input.date)),
+    getBlockedHoursByRange: adminProcedure
+      .input(z.object({ barberId: z.number(), startDate: z.string(), endDate: z.string() }))
+      .query(async ({ input }) => getBlockedHoursByRange(input.barberId, input.startDate, input.endDate)),
   }),
   analytics: router({
     barberPerformance: adminProcedure

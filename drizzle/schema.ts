@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, date } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -118,3 +118,19 @@ export const barberAvailability = mysqlTable("barberAvailability", {
 
 export type BarberAvailability = typeof barberAvailability.$inferSelect;
 export type InsertBarberAvailability = typeof barberAvailability.$inferInsert;
+
+/**
+ * Blocked hours table for storing specific hours when a barber cannot accept bookings
+ */
+export const blockedHours = mysqlTable("blockedHours", {
+  id: int("id").autoincrement().primaryKey(),
+  barberId: int("barberId").notNull(),
+  date: date("date").notNull(), // YYYY-MM-DD format
+  hour: int("hour").notNull(), // 0-23 (hour of the day)
+  reason: varchar("reason", { length: 255 }), // Optional reason for blocking (e.g., "Meeting", "Lunch break")
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type BlockedHours = typeof blockedHours.$inferSelect;
+export type InsertBlockedHours = typeof blockedHours.$inferInsert;
