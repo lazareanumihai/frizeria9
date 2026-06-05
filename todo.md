@@ -402,3 +402,21 @@
   - Unblock button available for each blocked hour
 - Test file created: server/bookings.dayoff.test.ts (3 tests, all passing)
 - Checkpoint saved: d0604fd1
+
+
+## Contact Page (Completed)
+- [x] Create Contact page component with form
+  - [x] Name field (required)
+  - [x] Email field (required, validated)
+  - [x] Phone field (optional)
+  - [x] Message field (required, min 10 chars)
+  - [x] Submit button with loading state
+  - [x] Success/error messages
+- [x] Create backend endpoint for contact form submission
+  - [x] Validate form data
+  - [x] Send email notification to owner via notifyOwner helper
+  - [x] Return success/error response
+- [x] Add Contact route to App.tsx
+- [x] Add Contact link to navigation menu (desktop & mobile)
+- [x] Style contact page to match design (dark luxury theme)
+- [x] Test form submission end-to-end

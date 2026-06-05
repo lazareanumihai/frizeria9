@@ -11,6 +11,7 @@ import ServicesPage from "./pages/ServicesPage";
 import BarberManagementPage from "./pages/BarberManagementPage";
 import LoginPage from "./pages/LoginPage";
 import AnalyticsDashboard from "./pages/AnalyticsDashboard";
+import Contact from "./pages/Contact";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -23,6 +24,7 @@ function Router() {
       <Route path={"/admin/services"} component={ServicesPage} />
       <Route path={"/admin/barbers"} component={BarberManagementPage} />
       <Route path={"/admin/analytics"} component={AnalyticsDashboard} />
+      <Route path={"/contact"} component={Contact} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>

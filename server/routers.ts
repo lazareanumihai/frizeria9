@@ -288,6 +288,32 @@ export const appRouter = router({
       .input(z.object({ startDate: z.date().optional(), endDate: z.date().optional(), barberId: z.number().optional() }))
       .query(async ({ input }) => getCancellationRateByBarber(input.startDate, input.endDate, input.barberId)),
   }),
+  contact: router({
+    submit: publicProcedure
+      .input(z.object({
+        name: z.string().min(1),
+        email: z.string().email(),
+        phone: z.string().optional(),
+        message: z.string().min(10),
+      }))
+      .mutation(async ({ input }) => {
+        try {
+          const { notifyOwner } = await import("./_core/notification");
+          await notifyOwner({
+            title: `New Contact Form Submission from ${input.name}`,
+            content: `Email: ${input.email}\nPhone: ${input.phone || "N/A"}\n\nMessage:\n${input.message}`,
+          });
+
+          return {
+            success: true,
+            message: "Contact form submitted successfully",
+          };
+        } catch (error) {
+          console.error("Error submitting contact form:", error);
+          throw new Error("Failed to submit contact form");
+        }
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

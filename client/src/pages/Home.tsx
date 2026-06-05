@@ -201,7 +201,6 @@ export default function Home() {
             {[
               { label: "Servicii", id: "servicii" },
               { label: "Programare", id: "programare" },
-              { label: "Contact", id: "contact" },
             ].map((item) => (
               <button
                 key={item.id}
@@ -212,6 +211,13 @@ export default function Home() {
                 {item.label}
               </button>
             ))}
+            <a
+              href="/contact"
+              className="text-sm tracking-widest uppercase text-foreground/70 hover:text-gold transition-colors duration-300"
+              style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 500 }}
+            >
+              Contact
+            </a>
             <button
               onClick={() => setBookingOpen(true)}
               className="px-6 py-2 bg-gold text-background font-semibold tracking-wider uppercase text-xs hover:bg-gold/90 transition-colors"
@@ -237,7 +243,6 @@ export default function Home() {
               {[
                 { label: "Servicii", id: "servicii" },
                 { label: "Programare", id: "programare" },
-                { label: "Contact", id: "contact" },
               ].map((item) => (
                 <button
                   key={item.id}
@@ -248,6 +253,13 @@ export default function Home() {
                   {item.label}
                 </button>
               ))}
+              <a
+                href="/contact"
+                className="block w-full text-left py-2 text-sm tracking-widest uppercase text-foreground/70 hover:text-gold transition-colors"
+                style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 500 }}
+              >
+                Contact
+              </a>
               <button
                 onClick={() => {
                   setBookingOpen(true);
