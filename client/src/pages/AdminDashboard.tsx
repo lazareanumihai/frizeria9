@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { ChevronLeft, ChevronRight, Trash2, CheckCircle2, Clock, X, Settings, Wrench, Users, BarChart3, Scissors, Calendar } from "lucide-react";
+import { ChevronLeft, ChevronRight, Trash2, CheckCircle2, Clock, X, Settings, Wrench, Users, BarChart3, Scissors } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { ro } from "date-fns/locale";
 import { useLocation } from "wouter";
@@ -111,15 +111,6 @@ export default function AdminDashboard() {
             <BarChart3 className="w-4 h-4" />
             Analytics
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setLocation("/admin/schedule")}
-            className="gap-2"
-          >
-            <Scissors className="w-4 h-4" />
-            Program
-          </Button>
         </div>
       </div>
 
@@ -160,19 +151,7 @@ export default function AdminDashboard() {
 
           {/* Right: Visual Schedule Grid */}
           <div className="lg:col-span-2">
-            <div className="text-center py-12 text-muted-foreground bg-card rounded-lg border border-border">
-              <Calendar className="w-10 h-10 mx-auto mb-3 opacity-40" />
-              <p className="mb-4">Programul detaliat al zilei a fost mutat la "Program de Lucru"</p>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setLocation("/admin/schedule")}
-                className="gap-2"
-              >
-                <Scissors className="w-4 h-4" />
-                Mergi la Program de Lucru
-              </Button>
-            </div>
+            <VisualScheduleWithBlockedHours selectedDate={selectedDate} selectedBarberId={selectedBarberId} getServiceName={getServiceName} />
           </div>
         </div>
 
