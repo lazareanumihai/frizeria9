@@ -41,13 +41,15 @@ export function getSessionCookieOptions(
 
   const secure = isSecureRequest(req);
 
-  // Browsers reject `SameSite=None` cookies that are not also `Secure`, which
-  // breaks sessions on plain-HTTP deployments (e.g. served directly over an IP).
-  // The app is same-origin, so `Lax` is sufficient when not on HTTPS.
+  // The app is same-origin, so `SameSite=Lax` is sufficient: cookies are still
+  // sent on same-origin requests and top-level navigations (including the OAuth
+  // callback redirect). `None` would require `Secure` (breaking plain-HTTP
+  // deployments served over an IP) and needlessly allow cross-site sending,
+  // widening the CSRF surface.
   return {
     httpOnly: true,
     path: "/",
-    sameSite: secure ? "none" : "lax",
+    sameSite: "lax",
     secure,
   };
 }
