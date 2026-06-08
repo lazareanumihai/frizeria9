@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Mail, Phone, MapPin, Send } from "lucide-react";
+import { Mail, Phone, MapPin, Send, Facebook, Instagram, MessageCircle, Linkedin, Music } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -145,6 +145,60 @@ export default function Contact() {
                 </div>
               </div>
             </div>
+
+            {/* Social Media */}
+            <div className="bg-card border border-border rounded-lg p-6">
+              <h3 className="text-lg font-medium text-foreground mb-4">Urmărește-ne</h3>
+              <div className="flex gap-3 flex-wrap">
+                <a
+                  href="https://facebook.com/frizeria9"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-accent/10 hover:bg-accent/20 text-accent transition-colors"
+                  title="Facebook"
+                >
+                  <Facebook className="w-5 h-5" />
+                </a>
+                <a
+                  href="https://instagram.com/frizeria9"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-accent/10 hover:bg-accent/20 text-accent transition-colors"
+                  title="Instagram"
+                >
+                  <Instagram className="w-5 h-5" />
+                </a>
+                <a
+                  href="https://tiktok.com/@frizeria9"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-accent/10 hover:bg-accent/20 text-accent transition-colors"
+                  title="TikTok"
+                >
+                  <Music className="w-5 h-5" />
+                </a>
+                <a
+                  href="https://linkedin.com/company/frizeria9"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-accent/10 hover:bg-accent/20 text-accent transition-colors"
+                  title="LinkedIn"
+                >
+                  <Linkedin className="w-5 h-5" />
+                </a>
+              </div>
+            </div>
+
+            {/* WhatsApp Quick Contact */}
+            <a
+              href="https://wa.me/40123456789?text=Bună! Aș dori să mă programez la Frizeria 9."
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center w-full gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors"
+            >
+              <MessageCircle className="w-5 h-5" />
+              Contactează-ne pe WhatsApp
+            </a>
           </div>
 
           {/* Contact Form */}

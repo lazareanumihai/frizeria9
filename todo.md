@@ -420,3 +420,18 @@
 - [x] Add Contact link to navigation menu (desktop & mobile)
 - [x] Style contact page to match design (dark luxury theme)
 - [x] Test form submission end-to-end
+
+
+## Social Media & WhatsApp Buttons (Completed)
+- [x] Add social media links section to Contact page
+  - [x] Facebook link button
+  - [x] Instagram link button
+  - [x] TikTok link button
+  - [x] LinkedIn link button
+- [x] Add WhatsApp quick contact button
+  - [x] Button with WhatsApp icon
+  - [x] Pre-filled message template
+  - [x] Opens WhatsApp Web/App
+- [x] Style buttons to match dark luxury theme
+- [x] Add icons from lucide-react
+- [x] Test all links and WhatsApp functionality
