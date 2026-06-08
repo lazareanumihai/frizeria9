@@ -1,9 +1,38 @@
 // Preconfigured storage helpers for Manus WebDev templates
-// Uses the Biz-provided storage proxy (Authorization: Bearer <token>)
+// Uses the Biz-provided storage proxy (Authorization: Bearer <token>) when
+// configured, otherwise falls back to local-filesystem storage so the app
+// works on self-hosted deployments without the Manus storage proxy.
 
+import { promises as fs } from 'fs';
+import path from 'path';
 import { ENV } from './_core/env';
 
 type StorageConfig = { baseUrl: string; apiKey: string };
+
+// Directory where uploads are stored when the forge storage proxy is not
+// configured. Served statically at /uploads by the Express app.
+export const LOCAL_UPLOADS_DIR = path.join(process.cwd(), 'uploads');
+export const LOCAL_UPLOADS_ROUTE = '/uploads';
+
+function isForgeConfigured(): boolean {
+  return Boolean(ENV.forgeApiUrl && ENV.forgeApiKey);
+}
+
+function toBuffer(data: Buffer | Uint8Array | string): Buffer {
+  if (typeof data === 'string') return Buffer.from(data);
+  return Buffer.from(data);
+}
+
+async function localPut(
+  relKey: string,
+  data: Buffer | Uint8Array | string
+): Promise<{ key: string; url: string }> {
+  const key = normalizeKey(relKey);
+  const filePath = path.join(LOCAL_UPLOADS_DIR, key);
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  await fs.writeFile(filePath, toBuffer(data));
+  return { key, url: `${LOCAL_UPLOADS_ROUTE}/${key}` };
+}
 
 function getStorageConfig(): StorageConfig {
   const baseUrl = ENV.forgeApiUrl;
@@ -72,6 +101,9 @@ export async function storagePut(
   data: Buffer | Uint8Array | string,
   contentType = "application/octet-stream"
 ): Promise<{ key: string; url: string }> {
+  if (!isForgeConfigured()) {
+    return localPut(relKey, data);
+  }
   const { baseUrl, apiKey } = getStorageConfig();
   const key = normalizeKey(relKey);
   const uploadUrl = buildUploadUrl(baseUrl, key);
@@ -93,6 +125,10 @@ export async function storagePut(
 }
 
 export async function storageGet(relKey: string): Promise<{ key: string; url: string; }> {
+  if (!isForgeConfigured()) {
+    const key = normalizeKey(relKey);
+    return { key, url: `${LOCAL_UPLOADS_ROUTE}/${key}` };
+  }
   const { baseUrl, apiKey } = getStorageConfig();
   const key = normalizeKey(relKey);
   return {

@@ -7,6 +7,7 @@ import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import { LOCAL_UPLOADS_DIR, LOCAL_UPLOADS_ROUTE } from "../storage";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -43,6 +44,9 @@ async function startServer() {
       createContext,
     })
   );
+  // Serve locally-stored uploads (used when the forge storage proxy is not
+  // configured). Registered before the SPA catch-all so files resolve directly.
+  app.use(LOCAL_UPLOADS_ROUTE, express.static(LOCAL_UPLOADS_DIR));
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
