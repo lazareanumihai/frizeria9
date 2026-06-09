@@ -381,21 +381,36 @@ export default function ServicesPage() {
                       onDrop={(e) => reorderMode ? handleServiceDrop(service.id) : handleDrop(e, service.id)}
                       className={`cursor-pointer ${reorderMode && draggedServiceId === service.id ? "opacity-50" : ""}`}
                     >
-                      {service.imageUrl ? (
-                        <div className="relative">
-                          <img src={service.imageUrl} alt={service.name} className="w-full h-40 object-cover" />
-                          <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition flex items-center justify-center opacity-0 hover:opacity-100">
-                            <Upload className="w-6 h-6 text-white" />
+                      <label className={`block ${reorderMode ? "" : "cursor-pointer"}`}>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={reorderMode || uploadingServiceId === service.id}
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (f) handleImageUpload(service.id, f);
+                            e.currentTarget.value = "";
+                          }}
+                        />
+                        {service.imageUrl ? (
+                          <div className="relative">
+                            <img src={service.imageUrl} alt={service.name} className="w-full h-40 object-cover" />
+                            <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition flex items-center justify-center opacity-0 hover:opacity-100">
+                              <Upload className="w-6 h-6 text-white" />
+                            </div>
                           </div>
-                        </div>
-                      ) : (
-                        <div className="w-full h-40 bg-muted flex items-center justify-center border-2 border-dashed border-muted-foreground/30">
-                          <div className="text-center">
-                            <Upload className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
-                            <p className="text-sm text-muted-foreground">Trage imagine aici</p>
+                        ) : (
+                          <div className="w-full h-40 bg-muted flex items-center justify-center border-2 border-dashed border-muted-foreground/30">
+                            <div className="text-center">
+                              <Upload className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
+                              <p className="text-sm text-muted-foreground">
+                                {uploadingServiceId === service.id ? "Se încarcă..." : "Apasă sau trage imagine aici"}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
+                      </label>
                       <CardHeader>
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1">
