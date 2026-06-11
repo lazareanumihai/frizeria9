@@ -1,6 +1,31 @@
 import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, date } from "drizzle-orm/mysql-core";
 
 /**
+ * Tenants (firms / barbershops) for the multi-tenant SaaS platform.
+ * Each tenant owns its own barbers, services, bookings and settings, and is
+ * reachable on its own public site at /{slug}.
+ */
+export const tenants = mysqlTable("tenants", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Display name of the firm, e.g. "Frizeria 9". */
+  name: varchar("name", { length: 255 }).notNull(),
+  /** Unique URL slug used to reach the firm's public site at /{slug}. */
+  slug: varchar("slug", { length: 100 }).notNull().unique(),
+  /** Email of the firm's primary admin (denormalized for quick overview). */
+  adminEmail: varchar("adminEmail", { length: 320 }),
+  /** Monthly subscription price charged per active barber (RON). */
+  basePricePerBarber: decimal("basePricePerBarber", { precision: 10, scale: 2 }).default("50").notNull(),
+  /** Cached monthly total = activeBarbers * basePricePerBarber. Recalculated on barber changes. */
+  currentMonthlyTotal: decimal("currentMonthlyTotal", { precision: 10, scale: 2 }).default("0").notNull(),
+  isActive: int("isActive").default(1).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Tenant = typeof tenants.$inferSelect;
+export type InsertTenant = typeof tenants.$inferInsert;
+
+/**
  * Core user table backing auth flow.
  * Extend this file with additional tables as your product grows.
  * Columns use camelCase to match both database fields and generated types.
@@ -17,7 +42,9 @@ export const users = mysqlTable("users", {
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
   passwordHash: text("passwordHash"),
-  role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  role: mysqlEnum("role", ["user", "admin", "super_admin"]).default("user").notNull(),
+  /** Tenant this user belongs to. NULL for the global Master Admin (super_admin). */
+  tenantId: int("tenantId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -31,6 +58,7 @@ export type InsertUser = typeof users.$inferInsert;
  */
 export const bookings = mysqlTable("bookings", {
   id: int("id").autoincrement().primaryKey(),
+  tenantId: int("tenantId"),
   clientName: varchar("clientName", { length: 255 }).notNull(),
   clientPhone: varchar("clientPhone", { length: 20 }).notNull(),
   serviceType: varchar("serviceType", { length: 255 }).notNull(),
@@ -52,6 +80,7 @@ export type InsertBooking = typeof bookings.$inferInsert;
  */
 export const settings = mysqlTable("settings", {
   id: int("id").autoincrement().primaryKey(),
+  tenantId: int("tenantId"),
   // Business hours (JSON format: {mon: {start: "08:00", end: "18:00"}, ...})
   businessHours: text("businessHours"),
   // Service prices (JSON format: {tuns: 40, barbierit: 35, pachet_complet: 65})
@@ -70,6 +99,7 @@ export type InsertSetting = typeof settings.$inferInsert;
  */
 export const services = mysqlTable("services", {
   id: int("id").autoincrement().primaryKey(),
+  tenantId: int("tenantId"),
   name: varchar("name", { length: 255 }).notNull(),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   duration: int("duration").notNull(), // Duration in minutes
@@ -88,6 +118,7 @@ export type InsertService = typeof services.$inferInsert;
  */
 export const barbers = mysqlTable("barbers", {
   id: int("id").autoincrement().primaryKey(),
+  tenantId: int("tenantId"),
   name: varchar("name", { length: 255 }).notNull(),
   phone: varchar("phone", { length: 20 }),
   email: varchar("email", { length: 320 }),
@@ -107,6 +138,7 @@ export type InsertBarber = typeof barbers.$inferInsert;
  */
 export const barberAvailability = mysqlTable("barberAvailability", {
   id: int("id").autoincrement().primaryKey(),
+  tenantId: int("tenantId"),
   barberId: int("barberId").notNull(),
   dayOfWeek: int("dayOfWeek").notNull(), // 0-6 (Sunday-Saturday)
   startTime: varchar("startTime", { length: 5 }).notNull(), // HH:MM format
@@ -124,6 +156,7 @@ export type InsertBarberAvailability = typeof barberAvailability.$inferInsert;
  */
 export const blockedHours = mysqlTable("blockedHours", {
   id: int("id").autoincrement().primaryKey(),
+  tenantId: int("tenantId"),
   barberId: int("barberId").notNull(),
   date: date("date").notNull(), // YYYY-MM-DD format
   hour: int("hour").notNull(), // 0-23 (hour of the day)

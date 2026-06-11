@@ -13,6 +13,7 @@ const mockAdminUser: User = {
   name: "Admin",
   loginMethod: "manus",
   role: "admin",
+  tenantId: 1,
   createdAt: new Date(),
   updatedAt: new Date(),
   lastSignedIn: new Date(),
@@ -128,7 +129,7 @@ describe("services router - reordering", () => {
     const caller = appRouter.createCaller(ctx);
 
     // Get all public services - they should be sorted by order
-    const allServices = await caller.services.getAll();
+    const allServices = await caller.services.getAll({ slug: "frizeria9" });
 
     // Verify that services are sorted by order (ascending)
     for (let i = 1; i < allServices.length; i++) {

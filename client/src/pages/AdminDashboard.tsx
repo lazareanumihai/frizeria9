@@ -21,7 +21,7 @@ const TIME_SLOTS = [
 export default function AdminDashboard() {
   const { user, loading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
-  const { data: services = [] } = trpc.services.getAll.useQuery();
+  const { data: services = [] } = trpc.services.getAllAdmin.useQuery();
   
   // Initialize with today's date at midnight (local time)
   const today = new Date();
@@ -37,7 +37,7 @@ export default function AdminDashboard() {
   };
 
   // Redirect if not admin
-  if (!authLoading && (!user || user.role !== "admin")) {
+  if (!authLoading && (!user || (user.role !== "admin" && user.role !== "super_admin"))) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Card className="w-96">
@@ -382,7 +382,7 @@ function StatusBadgeSmall({ status }: { status: string }) {
 
 
 function BarberFilter({ selectedBarberId, onBarberChange }: { selectedBarberId: number | null; onBarberChange: (id: number | null) => void }) {
-  const { data: barbers, isLoading } = trpc.barbers.getAll.useQuery();
+  const { data: barbers, isLoading } = trpc.barbers.getAllAdmin.useQuery();
 
   if (isLoading || !barbers) {
     return null;
@@ -434,7 +434,7 @@ function BarberFilter({ selectedBarberId, onBarberChange }: { selectedBarberId: 
 
 
 function BarberNameDisplay({ barberId }: { barberId: number }) {
-  const { data: barbers } = trpc.barbers.getAll.useQuery();
+  const { data: barbers } = trpc.barbers.getAllAdmin.useQuery();
   const barber = barbers?.find((b) => b.id === barberId);
 
   if (!barber) return null;

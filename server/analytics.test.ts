@@ -10,6 +10,7 @@ const mockAdminUser: User = {
   name: "Admin",
   loginMethod: "manus",
   role: "admin",
+  tenantId: 1,
   createdAt: new Date(),
   updatedAt: new Date(),
   lastSignedIn: new Date(),

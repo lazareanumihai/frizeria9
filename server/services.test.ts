@@ -11,6 +11,7 @@ const adminUser: User = {
   name: "Admin",
   loginMethod: "manus",
   role: "admin",
+  tenantId: 1,
   createdAt: new Date(),
   updatedAt: new Date(),
   lastSignedIn: new Date(),
@@ -59,7 +60,7 @@ describe("services router", () => {
     const ctx = createMockContext(null);
     const caller = appRouter.createCaller(ctx);
 
-    const allServices = await caller.services.getAll();
+    const allServices = await caller.services.getAll({ slug: "frizeria9" });
 
     // All services should be active
     allServices.forEach((service) => {
@@ -164,7 +165,7 @@ describe("services router", () => {
     await adminCaller.services.toggle({ serviceId: createdService!.id });
 
     // Public should not see it
-    const publicServices = await publicCaller.services.getAll();
+    const publicServices = await publicCaller.services.getAll({ slug: "frizeria9" });
     const hiddenService = publicServices.find((s) => s.id === createdService!.id);
     expect(hiddenService).toBeUndefined();
 

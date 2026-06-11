@@ -42,6 +42,14 @@ const trpcClient = trpc.createClient({
     httpBatchLink({
       url: "/api/trpc",
       transformer: superjson,
+      // When the Master Admin (super_admin) is managing a specific firm, the
+      // selected tenant id is stored in localStorage and forwarded so the
+      // server can scope tenant-admin endpoints to that firm.
+      headers() {
+        if (typeof window === "undefined") return {};
+        const selectedTenantId = window.localStorage.getItem("selectedTenantId");
+        return selectedTenantId ? { "x-tenant-id": selectedTenantId } : {};
+      },
       fetch(input, init) {
         return globalThis.fetch(input, {
           ...(init ?? {}),

@@ -14,14 +14,14 @@ describe("Day-off detection with correct day-of-week conversion", () => {
     
     // Friday in JavaScript Date.getDay() is 5, but in Monday-first system it's 4
     // So we store isDayOff with dayOfWeek=4
-    await setBarberAvailability(barberId, 4, "09:00", "18:00", 1);
+    await setBarberAvailability(1, barberId, 4, "09:00", "18:00", 1);
 
     // Create a Friday date: June 5, 2026
     // JavaScript: new Date(2026, 5, 5).getDay() = 5 (Friday)
     // But getAvailableSlots converts it: 5 === 0 ? 6 : 5 - 1 = 4 (Monday-first Friday)
     const fridayDate = new Date(2026, 5, 5); // June 5, 2026 is a Friday
     
-    const slots = await getAvailableSlots(fridayDate, barberId);
+    const slots = await getAvailableSlots(1, fridayDate, barberId);
     
     // Should return the day-off marker
     expect(slots).toContain("__DAY_OFF__");
@@ -32,12 +32,12 @@ describe("Day-off detection with correct day-of-week conversion", () => {
     const barberId = 1;
     
     // Set Monday (dayOfWeek=0) as working day
-    await setBarberAvailability(barberId, 0, "09:00", "18:00", 0);
+    await setBarberAvailability(1, barberId, 0, "09:00", "18:00", 0);
 
     // Create a Monday date: June 2, 2026
     const mondayDate = new Date(2026, 5, 2); // June 2, 2026 is a Monday
     
-    const slots = await getAvailableSlots(mondayDate, barberId);
+    const slots = await getAvailableSlots(1, mondayDate, barberId);
     
     // Should NOT contain day-off marker
     expect(slots).not.toContain("__DAY_OFF__");
@@ -49,18 +49,18 @@ describe("Day-off detection with correct day-of-week conversion", () => {
     const barberId = 1;
     
     // Set Friday (dayOfWeek=4) as day off
-    await setBarberAvailability(barberId, 4, "09:00", "18:00", 1);
+    await setBarberAvailability(1, barberId, 4, "09:00", "18:00", 1);
     // Set Saturday (dayOfWeek=5) as working day
-    await setBarberAvailability(barberId, 5, "09:00", "18:00", 0);
+    await setBarberAvailability(1, barberId, 5, "09:00", "18:00", 0);
 
     // Test Friday - should be day off
     const fridayDate = new Date(2026, 5, 5); // June 5, 2026 is Friday
-    const fridaySlots = await getAvailableSlots(fridayDate, barberId);
+    const fridaySlots = await getAvailableSlots(1, fridayDate, barberId);
     expect(fridaySlots).toContain("__DAY_OFF__");
 
     // Test Saturday - should NOT be day off
     const saturdayDate = new Date(2026, 5, 6); // June 6, 2026 is Saturday
-    const saturdaySlots = await getAvailableSlots(saturdayDate, barberId);
+    const saturdaySlots = await getAvailableSlots(1, saturdayDate, barberId);
     expect(saturdaySlots).not.toContain("__DAY_OFF__");
   });
 

@@ -47,7 +47,7 @@ export default function SettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
 
   // Query hooks MUST be called unconditionally
-  const { data: settings } = trpc.settings.get.useQuery();
+  const { data: settings } = trpc.settings.getAdmin.useQuery();
   const updateSettingsMutation = trpc.settings.update.useMutation();
 
   // Load settings from database when available
@@ -123,7 +123,7 @@ export default function SettingsPage() {
   };
 
   // Redirect if not admin - AFTER all hooks
-  if (!authLoading && (!user || user.role !== "admin")) {
+  if (!authLoading && (!user || (user.role !== "admin" && user.role !== "super_admin"))) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Card className="w-96">

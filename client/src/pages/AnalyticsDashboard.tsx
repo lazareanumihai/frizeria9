@@ -35,7 +35,7 @@ export default function AnalyticsDashboard() {
 
   // Fetch all barbers
   const { data: barbers = [] } = trpc.barbers.getAllAdmin.useQuery(undefined, {
-    enabled: !!user && user.role === "admin",
+    enabled: !!user && (user.role === "admin" || user.role === "super_admin"),
   });
 
   // Fetch analytics data
@@ -71,7 +71,7 @@ export default function AnalyticsDashboard() {
   });
 
   // Redirect if not admin
-  if (!authLoading && (!user || user.role !== "admin")) {
+  if (!authLoading && (!user || (user.role !== "admin" && user.role !== "super_admin"))) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Card className="w-96">

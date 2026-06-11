@@ -13,6 +13,7 @@ const mockAdminUser: User = {
   name: "Admin",
   loginMethod: "manus",
   role: "admin",
+  tenantId: 1,
   createdAt: new Date(),
   updatedAt: new Date(),
   lastSignedIn: new Date(),
@@ -91,7 +92,7 @@ describe("barbers router", () => {
     const ctx = createMockContext(null);
     const caller = appRouter.createCaller(ctx);
 
-    const result = await caller.barbers.getAll();
+    const result = await caller.barbers.getAll({ slug: "frizeria9" });
 
     expect(Array.isArray(result)).toBe(true);
     expect(result.length).toBeGreaterThan(0);
@@ -101,7 +102,7 @@ describe("barbers router", () => {
     const ctx = createMockContext(null);
     const caller = appRouter.createCaller(ctx);
 
-    const result = await caller.barbers.getActive();
+    const result = await caller.barbers.getActive({ slug: "frizeria9" });
 
     expect(Array.isArray(result)).toBe(true);
     // All returned barbers should be active
@@ -174,7 +175,7 @@ describe("barbers router", () => {
     // Then check that it's not in the active list
     const publicCtx = createMockContext(null);
     const publicCaller = appRouter.createCaller(publicCtx);
-    const activeBarbers = await publicCaller.barbers.getActive();
+    const activeBarbers = await publicCaller.barbers.getActive({ slug: "frizeria9" });
 
     const found = activeBarbers.find((b) => b.id === testBarberId);
     expect(found).toBeUndefined();
