@@ -17,9 +17,15 @@ export default function LoginPage() {
     setError("");
 
     try {
-      await loginMutation.mutateAsync({ email, password });
-      // Redirect to admin dashboard
-      window.location.href = "/admin";
+      const result = await loginMutation.mutateAsync({ email, password });
+      // The Master Admin manages firms; regular tenant admins manage their own
+      // salon and must not carry a selected-tenant override.
+      window.localStorage.removeItem("selectedTenantId");
+      if (result.user?.role === "super_admin") {
+        window.location.href = "/super-admin";
+      } else {
+        window.location.href = "/admin";
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     }

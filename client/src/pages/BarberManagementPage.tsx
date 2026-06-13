@@ -118,20 +118,27 @@ export default function BarberManagementPage() {
     }
   };
 
+  const fileToBase64 = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve((reader.result as string).split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+  const uploadPhotoFile = async (barberId: number, file: File) => {
+    setUploadingPhoto(true);
+    const base64 = await fileToBase64(file);
+    await uploadPhotoMutation.mutateAsync({
+      barberId,
+      fileData: base64,
+      fileName: file.name,
+    });
+  };
+
   const handlePhotoUpload = async (barberId: number) => {
     if (!photoFile) return;
-    
-    setUploadingPhoto(true);
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const base64 = (event.target?.result as string).split(',')[1];
-      await uploadPhotoMutation.mutateAsync({
-        barberId,
-        fileData: base64,
-        fileName: photoFile.name,
-      });
-    };
-    reader.readAsDataURL(photoFile);
+    await uploadPhotoFile(barberId, photoFile);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -139,13 +146,20 @@ export default function BarberManagementPage() {
     if (!formData.name.trim()) return;
 
     if (editingId) {
+      // Also upload any staged photo so the user only needs to click
+      // "Salvează modificări" (the separate "Încarcă poza" button is optional).
+      const fileToUpload = photoFile;
+      const barberId = editingId;
       await updateMutation.mutateAsync({
-        barberId: editingId,
+        barberId,
         name: formData.name,
         phone: formData.phone || undefined,
         email: formData.email || undefined,
         description: formData.description || undefined,
       });
+      if (fileToUpload) {
+        await uploadPhotoFile(barberId, fileToUpload);
+      }
     } else {
       await createMutation.mutateAsync({
         name: formData.name,

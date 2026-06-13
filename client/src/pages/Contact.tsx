@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
+import { useTenantSlug } from "@/contexts/TenantContext";
 
 export default function Contact() {
+  const slug = useTenantSlug();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -45,6 +47,7 @@ export default function Contact() {
 
     try {
       await contactMutation.mutateAsync({
+        slug,
         name: formData.name,
         email: formData.email,
         phone: formData.phone,

@@ -11,6 +11,7 @@ const adminUser: User = {
   name: "Admin",
   loginMethod: "manus",
   role: "admin",
+  tenantId: 1,
   createdAt: new Date(),
   updatedAt: new Date(),
   lastSignedIn: new Date(),
@@ -53,6 +54,7 @@ describe("bookings router", () => {
 
       try {
         await caller.bookings.create({
+          slug: "frizeria9",
           clientName: "",
           clientPhone: "0758900900",
           serviceType: "tuns",

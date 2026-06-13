@@ -8,6 +8,7 @@ import { useState, useEffect } from "react";
 import { X, ChevronLeft, ChevronRight, Check, Calendar, Clock, Scissors, User, Phone, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { useTenantSlug } from "@/contexts/TenantContext";
 
 interface BookingModalProps {
   open: boolean;
@@ -52,14 +53,16 @@ export default function BookingModal({ open, onClose, selectedBarberId }: Bookin
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const slug = useTenantSlug();
+
   // Query services from database
-  const { data: services = [] } = trpc.services.getAll.useQuery();
+  const { data: services = [] } = trpc.services.getAll.useQuery({ slug });
   
   // Query active barbers
-  const { data: barbers = [] } = trpc.barbers.getActive.useQuery();
+  const { data: barbers = [] } = trpc.barbers.getActive.useQuery({ slug });
   
   // Query settings to get closed days
-  const { data: settings } = trpc.settings.get.useQuery();
+  const { data: settings } = trpc.settings.get.useQuery({ slug });
   const [closedDays, setClosedDays] = useState<string[]>([]);
 
   useEffect(() => {
@@ -94,7 +97,7 @@ export default function BookingModal({ open, onClose, selectedBarberId }: Bookin
 
   // Query occupied slots for selected date and barber
   const { data: occupiedSlots = [] } = trpc.bookings.getOccupiedSlots.useQuery(
-    { bookingDate: selectedDate || new Date(), barberId: selectedBarber === "any" ? null : (selectedBarber || null) },
+    { slug, bookingDate: selectedDate || new Date(), barberId: selectedBarber === "any" ? null : (selectedBarber || null) },
     { enabled: !!selectedDate && step === 4 }
   );
 
@@ -175,6 +178,7 @@ export default function BookingModal({ open, onClose, selectedBarberId }: Bookin
     try {
       const service = getSelectedServiceDetails();
       await createBookingMutation.mutateAsync({
+        slug,
         serviceType: service?.name || "Serviciu",
         bookingDate: selectedDate,
         bookingTime: selectedTime,

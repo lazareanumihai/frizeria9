@@ -9,6 +9,7 @@ import { useState, useEffect, useRef } from "react";
 import { Scissors, Clock, Phone, MapPin, ChevronDown, Menu, X, Check, Star, Calendar } from "lucide-react";
 import BookingModal from "@/components/BookingModal";
 import { trpc } from "@/lib/trpc";
+import { useTenantSlug } from "@/contexts/TenantContext";
 
 const HERO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663495348750/AzJrPCXs6rygdqwEVH7v2L/hero-barber-72bwpZC7UCSRkBLLkfNbZM.webp";
 const HAIRCUT_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663495348750/AzJrPCXs6rygdqwEVH7v2L/service-haircut-46zJPjbCFqJoCfXL9u7sG3.webp";
@@ -44,7 +45,8 @@ function AnimatedSection({ children, className = "" }: { children: React.ReactNo
 }
 
 function BarberProfilesSection({ onBooking }: { onBooking: (barberId: number) => void }) {
-  const { data: barbers = [] } = trpc.barbers.getActive.useQuery();
+  const slug = useTenantSlug();
+  const { data: barbers = [] } = trpc.barbers.getActive.useQuery({ slug });
   const activeBarbers = barbers.filter((b: any) => b.isActive === 1);
 
   if (activeBarbers.length === 0) return null;
@@ -145,7 +147,8 @@ export default function Home() {
   const [bookingOpen, setBookingOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [selectedBarberId, setSelectedBarberId] = useState<number | null>(null);
-  const { data: services = [], isLoading, error } = trpc.services.getAll.useQuery();
+  const slug = useTenantSlug();
+  const { data: services = [], isLoading, error } = trpc.services.getAll.useQuery({ slug });
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 60);
@@ -212,7 +215,7 @@ export default function Home() {
               </button>
             ))}
             <a
-              href="/contact"
+              href={`/${slug}/contact`}
               className="text-sm tracking-widest uppercase text-foreground/70 hover:text-gold transition-colors duration-300"
               style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 500 }}
             >
@@ -254,7 +257,7 @@ export default function Home() {
                 </button>
               ))}
               <a
-                href="/contact"
+                href={`/${slug}/contact`}
                 className="block w-full text-left py-2 text-sm tracking-widest uppercase text-foreground/70 hover:text-gold transition-colors"
                 style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 500 }}
               >

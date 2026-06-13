@@ -1,6 +1,6 @@
 
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, bookings, InsertBooking, settings, InsertSetting, services, InsertService, Service, barbers, InsertBarber, Barber, barberAvailability, InsertBarberAvailability, blockedHours, InsertBlockedHours, BlockedHours } from "../drizzle/schema";
+import { InsertUser, users, bookings, InsertBooking, settings, InsertSetting, services, InsertService, Service, barbers, InsertBarber, Barber, barberAvailability, InsertBarberAvailability, blockedHours, InsertBlockedHours, BlockedHours, tenants, InsertTenant, Tenant } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { eq, and, gte, lte, sql } from "drizzle-orm";
 import { count, sum, avg } from "drizzle-orm";
@@ -91,6 +91,111 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
+// ---------------------------------------------------------------------------
+// Tenant (firm) queries
+// ---------------------------------------------------------------------------
+
+export async function getAllTenants(): Promise<Tenant[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(tenants).orderBy(tenants.createdAt);
+}
+
+export async function getTenantBySlug(slug: string): Promise<Tenant | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(tenants).where(eq(tenants.slug, slug)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function getTenantById(id: number): Promise<Tenant | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(tenants).where(eq(tenants.id, id)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function createTenant(tenant: { name: string; slug: string; adminEmail?: string; basePricePerBarber?: string }): Promise<Tenant> {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+  await db.insert(tenants).values({
+    name: tenant.name,
+    slug: tenant.slug,
+    adminEmail: tenant.adminEmail ?? null,
+    basePricePerBarber: tenant.basePricePerBarber ?? "50",
+    currentMonthlyTotal: "0",
+  });
+  const created = await getTenantBySlug(tenant.slug);
+  if (!created) {
+    throw new Error("Failed to create tenant");
+  }
+  return created;
+}
+
+/** Count active barbers for a tenant. */
+export async function countActiveBarbers(tenantId: number): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  const result = await db
+    .select({ value: count() })
+    .from(barbers)
+    .where(and(eq(barbers.tenantId, tenantId), eq(barbers.isActive, 1)));
+  return Number(result[0]?.value ?? 0);
+}
+
+/**
+ * Recalculate and persist a tenant's monthly subscription total.
+ * total = number of active barbers * basePricePerBarber.
+ */
+export async function recalcTenantPricing(tenantId: number): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  const tenant = await getTenantById(tenantId);
+  if (!tenant) return 0;
+  const activeBarbers = await countActiveBarbers(tenantId);
+  const pricePerBarber = parseFloat(tenant.basePricePerBarber?.toString() ?? "50");
+  const total = activeBarbers * pricePerBarber;
+  await db
+    .update(tenants)
+    .set({ currentMonthlyTotal: total.toFixed(2) })
+    .where(eq(tenants.id, tenantId));
+  return total;
+}
+
+/** List all tenants with computed stats for the master-admin overview. */
+export async function getAllTenantsWithStats() {
+  const all = await getAllTenants();
+  const result = [] as Array<{
+    id: number;
+    name: string;
+    slug: string;
+    adminEmail: string | null;
+    basePricePerBarber: number;
+    activeBarbers: number;
+    monthlyTotal: number;
+    isActive: number;
+    createdAt: Date;
+  }>;
+  for (const t of all) {
+    const activeBarbers = await countActiveBarbers(t.id);
+    const pricePerBarber = parseFloat(t.basePricePerBarber?.toString() ?? "50");
+    result.push({
+      id: t.id,
+      name: t.name,
+      slug: t.slug,
+      adminEmail: t.adminEmail ?? null,
+      basePricePerBarber: pricePerBarber,
+      activeBarbers,
+      monthlyTotal: activeBarbers * pricePerBarber,
+      isActive: t.isActive,
+      createdAt: t.createdAt,
+    });
+  }
+  return result;
+}
+
 // Booking queries
 export async function createBooking(booking: InsertBooking) {
   const db = await getDb();
@@ -109,7 +214,7 @@ export async function createBooking(booking: InsertBooking) {
   return result;
 }
 
-export async function getBookingsByDate(date: Date) {
+export async function getBookingsByDate(tenantId: number, date: Date) {
   const db = await getDb();
   if (!db) {
     return [];
@@ -125,6 +230,7 @@ export async function getBookingsByDate(date: Date) {
     .from(bookings)
     .where(
       and(
+        eq(bookings.tenantId, tenantId),
         gte(bookings.bookingDate, startOfDay),
         lte(bookings.bookingDate, endOfDay)
       )
@@ -134,7 +240,7 @@ export async function getBookingsByDate(date: Date) {
   return result;
 }
 
-export async function getAllBookings() {
+export async function getAllBookings(tenantId: number) {
   const db = await getDb();
   if (!db) {
     return [];
@@ -143,12 +249,13 @@ export async function getAllBookings() {
   const result = await db
     .select()
     .from(bookings)
+    .where(eq(bookings.tenantId, tenantId))
     .orderBy(bookings.bookingDate);
 
   return result;
 }
 
-export async function updateBookingStatus(bookingId: number, status: "pending" | "confirmed" | "completed" | "cancelled") {
+export async function updateBookingStatus(tenantId: number, bookingId: number, status: "pending" | "confirmed" | "completed" | "cancelled") {
   const db = await getDb();
   if (!db) {
     throw new Error("Database not available");
@@ -157,12 +264,12 @@ export async function updateBookingStatus(bookingId: number, status: "pending" |
   const result = await db
     .update(bookings)
     .set({ status })
-    .where(eq(bookings.id, bookingId));
+    .where(and(eq(bookings.id, bookingId), eq(bookings.tenantId, tenantId)));
 
   return result;
 }
 
-export async function deleteBooking(bookingId: number) {
+export async function deleteBooking(tenantId: number, bookingId: number) {
   const db = await getDb();
   if (!db) {
     throw new Error("Database not available");
@@ -170,12 +277,12 @@ export async function deleteBooking(bookingId: number) {
 
   const result = await db
     .delete(bookings)
-    .where(eq(bookings.id, bookingId));
+    .where(and(eq(bookings.id, bookingId), eq(bookings.tenantId, tenantId)));
 
   return result;
 }
 
-export async function isTimeSlotAvailable(bookingDate: Date, bookingTime: string, barberId: number | null = null) {
+export async function isTimeSlotAvailable(tenantId: number, bookingDate: Date, bookingTime: string, barberId: number | null = null) {
   const db = await getDb();
   if (!db) {
     return true;
@@ -187,6 +294,7 @@ export async function isTimeSlotAvailable(bookingDate: Date, bookingTime: string
   const endOfDay = new Date(Date.UTC(dateOnly.getFullYear(), dateOnly.getMonth(), dateOnly.getDate(), 23, 59, 59, 999));
 
   const conditions = [
+    eq(bookings.tenantId, tenantId),
     gte(bookings.bookingDate, startOfDay),
     lte(bookings.bookingDate, endOfDay),
     eq(bookings.bookingTime, bookingTime)
@@ -205,7 +313,7 @@ export async function isTimeSlotAvailable(bookingDate: Date, bookingTime: string
   return existingBookings.length === 0;
 }
 
-export async function getAvailableSlots(bookingDate: Date, barberId: number | null = null) {
+export async function getAvailableSlots(tenantId: number, bookingDate: Date, barberId: number | null = null) {
   const db = await getDb();
   if (!db) {
     return [];
@@ -236,6 +344,7 @@ export async function getAvailableSlots(bookingDate: Date, barberId: number | nu
   }
 
   const conditions = [
+    eq(bookings.tenantId, tenantId),
     gte(bookings.bookingDate, startOfDay),
     lte(bookings.bookingDate, endOfDay)
   ];
@@ -252,7 +361,7 @@ export async function getAvailableSlots(bookingDate: Date, barberId: number | nu
   // Get blocked hours for this barber on this date
   const dateStr = dateOnly.toISOString().split('T')[0]; // YYYY-MM-DD format
   const blockedHoursList = barberId !== null 
-    ? await getBlockedHours(barberId, dateStr)
+    ? await getBlockedHours(tenantId, barberId, dateStr)
     : [];
 
   // Convert occupied slots and blocked hours to a set for quick lookup
@@ -271,32 +380,32 @@ export async function getAvailableSlots(bookingDate: Date, barberId: number | nu
 }
 
 // Settings queries
-export async function getSettings() {
+export async function getSettings(tenantId: number) {
   const db = await getDb();
   if (!db) {
     return null;
   }
 
-  const result = await db.select().from(settings).limit(1);
+  const result = await db.select().from(settings).where(eq(settings.tenantId, tenantId)).limit(1);
   return result.length > 0 ? result[0] : null;
 }
 
-export async function updateSettings(setting: Partial<InsertSetting>) {
+export async function updateSettings(tenantId: number, setting: Partial<InsertSetting>) {
   const db = await getDb();
   if (!db) {
     throw new Error("Database not available");
   }
 
-  const existing = await getSettings();
+  const existing = await getSettings(tenantId);
   if (existing) {
     return db.update(settings).set(setting).where(eq(settings.id, existing.id));
   } else {
-    return db.insert(settings).values(setting as InsertSetting);
+    return db.insert(settings).values({ ...setting, tenantId } as InsertSetting);
   }
 }
 
 // Services queries
-export async function getAllServices() {
+export async function getAllServices(tenantId: number) {
   const db = await getDb();
   if (!db) {
     return [];
@@ -305,7 +414,7 @@ export async function getAllServices() {
   const result = await db
     .select()
     .from(services)
-    .where(eq(services.isActive, 1))
+    .where(and(eq(services.tenantId, tenantId), eq(services.isActive, 1)))
     .orderBy(services.order);
 
   return result;
@@ -321,7 +430,7 @@ export async function createService(service: InsertService) {
   return result;
 }
 
-export async function updateService(serviceId: number, service: Partial<InsertService>) {
+export async function updateService(tenantId: number, serviceId: number, service: Partial<InsertService>) {
   const db = await getDb();
   if (!db) {
     throw new Error("Database not available");
@@ -330,12 +439,12 @@ export async function updateService(serviceId: number, service: Partial<InsertSe
   const result = await db
     .update(services)
     .set(service)
-    .where(eq(services.id, serviceId));
+    .where(and(eq(services.id, serviceId), eq(services.tenantId, tenantId)));
 
   return result;
 }
 
-export async function deleteService(serviceId: number) {
+export async function deleteService(tenantId: number, serviceId: number) {
   const db = await getDb();
   if (!db) {
     throw new Error("Database not available");
@@ -344,12 +453,12 @@ export async function deleteService(serviceId: number) {
   // Hard delete - remove from database
   const result = await db
     .delete(services)
-    .where(eq(services.id, serviceId));
+    .where(and(eq(services.id, serviceId), eq(services.tenantId, tenantId)));
 
   return result;
 }
 
-export async function toggleServiceStatus(serviceId: number) {
+export async function toggleServiceStatus(tenantId: number, serviceId: number) {
   const db = await getDb();
   if (!db) {
     throw new Error("Database not available");
@@ -359,7 +468,7 @@ export async function toggleServiceStatus(serviceId: number) {
   const service = await db
     .select()
     .from(services)
-    .where(eq(services.id, serviceId))
+    .where(and(eq(services.id, serviceId), eq(services.tenantId, tenantId)))
     .limit(1);
 
   if (service.length === 0) {
@@ -371,12 +480,12 @@ export async function toggleServiceStatus(serviceId: number) {
   const result = await db
     .update(services)
     .set({ isActive: newStatus })
-    .where(eq(services.id, serviceId));
+    .where(and(eq(services.id, serviceId), eq(services.tenantId, tenantId)));
 
   return result;
 }
 
-export async function getAllServicesAdmin() {
+export async function getAllServicesAdmin(tenantId: number) {
   const db = await getDb();
   if (!db) {
     return [];
@@ -385,12 +494,13 @@ export async function getAllServicesAdmin() {
   const result = await db
     .select()
     .from(services)
+    .where(eq(services.tenantId, tenantId))
     .orderBy(services.order);
 
   return result;
 }
 
-export async function reorderServices(serviceIds: number[]) {
+export async function reorderServices(tenantId: number, serviceIds: number[]) {
   const db = await getDb();
   if (!db) {
     throw new Error("Database not available");
@@ -401,7 +511,7 @@ export async function reorderServices(serviceIds: number[]) {
     db
       .update(services)
       .set({ order: index })
-      .where(eq(services.id, id))
+      .where(and(eq(services.id, id), eq(services.tenantId, tenantId)))
   );
 
   return Promise.all(updates);
@@ -435,7 +545,13 @@ export async function updateUserPassword(userId: number, passwordHash: string) {
     .where(eq(users.id, userId));
 }
 
-export async function createEmailUser(email: string, name: string, passwordHash: string) {
+export async function createEmailUser(
+  email: string,
+  name: string,
+  passwordHash: string,
+  role: "user" | "admin" | "super_admin" = "admin",
+  tenantId: number | null = null,
+) {
   const db = await getDb();
   if (!db) {
     throw new Error("Database not available");
@@ -450,12 +566,13 @@ export async function createEmailUser(email: string, name: string, passwordHash:
     name,
     passwordHash,
     loginMethod: "email",
-    role: "admin",
+    role,
+    tenantId,
   });
 }
 
 // Barber management functions
-export async function getAllBarbers() {
+export async function getAllBarbers(tenantId: number) {
   const db = await getDb();
   if (!db) {
     return [];
@@ -464,12 +581,13 @@ export async function getAllBarbers() {
   const result = await db
     .select()
     .from(barbers)
+    .where(eq(barbers.tenantId, tenantId))
     .orderBy(barbers.order);
 
   return result;
 }
 
-export async function getActiveBarbers() {
+export async function getActiveBarbers(tenantId: number) {
   const db = await getDb();
   if (!db) {
     return [];
@@ -478,10 +596,22 @@ export async function getActiveBarbers() {
   const result = await db
     .select()
     .from(barbers)
-    .where(eq(barbers.isActive, 1))
+    .where(and(eq(barbers.tenantId, tenantId), eq(barbers.isActive, 1)))
     .orderBy(barbers.order);
 
   return result;
+}
+
+/** Fetch a single barber scoped to a tenant (used to guard sub-resource access). */
+export async function getBarberById(tenantId: number, barberId: number): Promise<Barber | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db
+    .select()
+    .from(barbers)
+    .where(and(eq(barbers.id, barberId), eq(barbers.tenantId, tenantId)))
+    .limit(1);
+  return result.length > 0 ? result[0] : null;
 }
 
 export async function createBarber(barber: InsertBarber) {
@@ -491,18 +621,23 @@ export async function createBarber(barber: InsertBarber) {
   }
 
   const result = await db.insert(barbers).values(barber);
-  
+
+  // Recalculate the tenant's monthly subscription total after adding a barber.
+  if (barber.tenantId) {
+    await recalcTenantPricing(barber.tenantId);
+  }
+
   // Get the newly created barber
   const created = await db
     .select()
     .from(barbers)
-    .where(eq(barbers.name, barber.name))
+    .where(and(eq(barbers.name, barber.name), eq(barbers.tenantId, barber.tenantId as number)))
     .orderBy((t) => t.id);
   
   return created[created.length - 1];
 }
 
-export async function updateBarber(barberId: number, barber: Partial<InsertBarber>) {
+export async function updateBarber(tenantId: number, barberId: number, barber: Partial<InsertBarber>) {
   const db = await getDb();
   if (!db) {
     throw new Error("Database not available");
@@ -511,21 +646,26 @@ export async function updateBarber(barberId: number, barber: Partial<InsertBarbe
   return db
     .update(barbers)
     .set(barber)
-    .where(eq(barbers.id, barberId));
+    .where(and(eq(barbers.id, barberId), eq(barbers.tenantId, tenantId)));
 }
 
-export async function deleteBarber(barberId: number) {
+export async function deleteBarber(tenantId: number, barberId: number) {
   const db = await getDb();
   if (!db) {
     throw new Error("Database not available");
   }
 
-  return db
+  const result = await db
     .delete(barbers)
-    .where(eq(barbers.id, barberId));
+    .where(and(eq(barbers.id, barberId), eq(barbers.tenantId, tenantId)));
+
+  // Recalculate the tenant's monthly subscription total after removing a barber.
+  await recalcTenantPricing(tenantId);
+
+  return result;
 }
 
-export async function toggleBarberStatus(barberId: number) {
+export async function toggleBarberStatus(tenantId: number, barberId: number) {
   const db = await getDb();
   if (!db) {
     throw new Error("Database not available");
@@ -534,7 +674,7 @@ export async function toggleBarberStatus(barberId: number) {
   const barber = await db
     .select()
     .from(barbers)
-    .where(eq(barbers.id, barberId))
+    .where(and(eq(barbers.id, barberId), eq(barbers.tenantId, tenantId)))
     .limit(1);
 
   if (barber.length === 0) {
@@ -543,10 +683,15 @@ export async function toggleBarberStatus(barberId: number) {
 
   const newStatus = barber[0].isActive === 1 ? 0 : 1;
 
-  return db
+  const result = await db
     .update(barbers)
     .set({ isActive: newStatus })
-    .where(eq(barbers.id, barberId));
+    .where(and(eq(barbers.id, barberId), eq(barbers.tenantId, tenantId)));
+
+  // Active barber count changed -> recalculate pricing.
+  await recalcTenantPricing(tenantId);
+
+  return result;
 }
 
 export async function getBarberAvailability(barberId: number, dayOfWeek: number) {
@@ -563,7 +708,7 @@ export async function getBarberAvailability(barberId: number, dayOfWeek: number)
   return result;
 }
 
-export async function setBarberAvailability(barberId: number, dayOfWeek: number, startTime: string, endTime: string, isDayOff?: number) {
+export async function setBarberAvailability(tenantId: number, barberId: number, dayOfWeek: number, startTime: string, endTime: string, isDayOff?: number) {
   const db = await getDb();
   if (!db) {
     throw new Error("Database not available");
@@ -576,6 +721,7 @@ export async function setBarberAvailability(barberId: number, dayOfWeek: number,
 
   // Insert new availability using values with explicit field assignment
   const insertData: InsertBarberAvailability = {
+    tenantId,
     barberId,
     dayOfWeek,
     startTime,
@@ -593,7 +739,7 @@ export async function setBarberAvailability(barberId: number, dayOfWeek: number,
   return result[result.length - 1];
 }
 
-export async function getBookingsByBarber(barberId: number) {
+export async function getBookingsByBarber(tenantId: number, barberId: number) {
   const db = await getDb();
   if (!db) {
     return [];
@@ -602,13 +748,13 @@ export async function getBookingsByBarber(barberId: number) {
   const result = await db
     .select()
     .from(bookings)
-    .where(eq(bookings.barberId, barberId))
+    .where(and(eq(bookings.tenantId, tenantId), eq(bookings.barberId, barberId)))
     .orderBy(bookings.bookingDate);
 
   return result;
 }
 
-export async function getBookingsByBarberAndDate(barberId: number, date: Date) {
+export async function getBookingsByBarberAndDate(tenantId: number, barberId: number, date: Date) {
   const db = await getDb();
   if (!db) {
     return [];
@@ -624,6 +770,7 @@ export async function getBookingsByBarberAndDate(barberId: number, date: Date) {
     .from(bookings)
     .where(
       and(
+        eq(bookings.tenantId, tenantId),
         eq(bookings.barberId, barberId),
         gte(bookings.bookingDate, startOfDay),
         lte(bookings.bookingDate, endOfDay)
@@ -636,13 +783,13 @@ export async function getBookingsByBarberAndDate(barberId: number, date: Date) {
 
 
 // Analytics functions
-export async function getBarberPerformanceMetrics(barberId?: number, startDate?: Date, endDate?: Date) {
+export async function getBarberPerformanceMetrics(tenantId: number, barberId?: number, startDate?: Date, endDate?: Date) {
   const db = await getDb();
   if (!db) {
     return [];
   }
 
-  const conditions: any[] = [];
+  const conditions: any[] = [eq(bookings.tenantId, tenantId)];
   if (barberId) {
     conditions.push(eq(bookings.barberId, barberId));
   }
@@ -685,13 +832,13 @@ export async function getBarberPerformanceMetrics(barberId?: number, startDate?:
   return Array.from(metricsMap.values());
 }
 
-export async function getBookingTrendsByPeriod(period: 'daily' | 'weekly' | 'monthly', startDate: Date, endDate: Date, barberId?: number) {
+export async function getBookingTrendsByPeriod(tenantId: number, period: 'daily' | 'weekly' | 'monthly', startDate: Date, endDate: Date, barberId?: number) {
   const db = await getDb();
   if (!db) {
     return [];
   }
 
-  const conditions: any[] = [gte(bookings.bookingDate, startDate), lte(bookings.bookingDate, endDate)];
+  const conditions: any[] = [eq(bookings.tenantId, tenantId), gte(bookings.bookingDate, startDate), lte(bookings.bookingDate, endDate)];
   if (barberId) {
     conditions.push(eq(bookings.barberId, barberId));
   }
@@ -738,13 +885,13 @@ export async function getBookingTrendsByPeriod(period: 'daily' | 'weekly' | 'mon
   return Array.from(trendsMap.values()).sort((a, b) => a.period.localeCompare(b.period));
 }
 
-export async function getServiceDistribution(startDate?: Date, endDate?: Date, barberId?: number) {
+export async function getServiceDistribution(tenantId: number, startDate?: Date, endDate?: Date, barberId?: number) {
   const db = await getDb();
   if (!db) {
     return [];
   }
 
-  const conditions: any[] = [];
+  const conditions: any[] = [eq(bookings.tenantId, tenantId)];
   if (startDate) {
     conditions.push(gte(bookings.bookingDate, startDate));
   }
@@ -783,13 +930,13 @@ export async function getServiceDistribution(startDate?: Date, endDate?: Date, b
   return Array.from(distributionMap.values()).sort((a, b) => b.bookingCount - a.bookingCount);
 }
 
-export async function getBookingHeatmapData(startDate: Date, endDate: Date, barberId?: number) {
+export async function getBookingHeatmapData(tenantId: number, startDate: Date, endDate: Date, barberId?: number) {
   const db = await getDb();
   if (!db) {
     return [];
   }
 
-  const conditions: any[] = [gte(bookings.bookingDate, startDate), lte(bookings.bookingDate, endDate)];
+  const conditions: any[] = [eq(bookings.tenantId, tenantId), gte(bookings.bookingDate, startDate), lte(bookings.bookingDate, endDate)];
   if (barberId) {
     conditions.push(eq(bookings.barberId, barberId));
   }
@@ -826,13 +973,13 @@ export async function getBookingHeatmapData(startDate: Date, endDate: Date, barb
   });
 }
 
-export async function getCancellationRateByBarber(startDate?: Date, endDate?: Date, barberId?: number) {
+export async function getCancellationRateByBarber(tenantId: number, startDate?: Date, endDate?: Date, barberId?: number) {
   const db = await getDb();
   if (!db) {
     return [];
   }
 
-  const conditions: any[] = [];
+  const conditions: any[] = [eq(bookings.tenantId, tenantId)];
   if (startDate) {
     conditions.push(gte(bookings.bookingDate, startDate));
   }
@@ -874,7 +1021,7 @@ export async function getCancellationRateByBarber(startDate?: Date, endDate?: Da
 }
 
 
-export async function reorderBarbers(barberIds: number[]) {
+export async function reorderBarbers(tenantId: number, barberIds: number[]) {
   const db = await getDb();
   if (!db) {
     throw new Error("Database not available");
@@ -885,7 +1032,7 @@ export async function reorderBarbers(barberIds: number[]) {
     db
       .update(barbers)
       .set({ order: index })
-      .where(eq(barbers.id, id))
+      .where(and(eq(barbers.id, id), eq(barbers.tenantId, tenantId)))
   );
 
   return Promise.all(updates);
@@ -900,6 +1047,7 @@ export async function reorderBarbers(barberIds: number[]) {
  * @param reason - Optional reason for blocking
  */
 export async function blockHours(
+  tenantId: number,
   barberId: number,
   date: string,
   hours: number[],
@@ -913,6 +1061,7 @@ export async function blockHours(
   // Insert blocked hours (ignore duplicates)
   const insertPromises = hours.map(hour =>
     db.insert(blockedHours).values({
+      tenantId,
       barberId,
       date: date as any, // Date string in YYYY-MM-DD format
       hour,
@@ -930,6 +1079,7 @@ export async function blockHours(
     .from(blockedHours)
     .where(
       and(
+        eq(blockedHours.tenantId, tenantId),
         eq(blockedHours.barberId, barberId),
         eq(blockedHours.date, date as any)
       )
@@ -944,6 +1094,7 @@ export async function blockHours(
  * @param hours - Array of hours (0-23) to unblock
  */
 export async function unblockHours(
+  tenantId: number,
   barberId: number,
   date: string,
   hours: number[]
@@ -959,6 +1110,7 @@ export async function unblockHours(
       .delete(blockedHours)
       .where(
         and(
+          eq(blockedHours.tenantId, tenantId),
           eq(blockedHours.barberId, barberId),
           eq(blockedHours.date, date as any),
           eq(blockedHours.hour, hour)
@@ -975,6 +1127,7 @@ export async function unblockHours(
  * @param date - Date in YYYY-MM-DD format
  */
 export async function getBlockedHours(
+  tenantId: number,
   barberId: number,
   date: string
 ): Promise<BlockedHours[]> {
@@ -988,6 +1141,7 @@ export async function getBlockedHours(
     .from(blockedHours)
     .where(
       and(
+        eq(blockedHours.tenantId, tenantId),
         eq(blockedHours.barberId, barberId),
         eq(blockedHours.date, date as any)
       )
@@ -1002,6 +1156,7 @@ export async function getBlockedHours(
  * @param endDate - End date in YYYY-MM-DD format
  */
 export async function getBlockedHoursByRange(
+  tenantId: number,
   barberId: number,
   startDate: string,
   endDate: string
@@ -1016,6 +1171,7 @@ export async function getBlockedHoursByRange(
     .from(blockedHours)
     .where(
       and(
+        eq(blockedHours.tenantId, tenantId),
         eq(blockedHours.barberId, barberId),
         gte(blockedHours.date, startDate as any),
         lte(blockedHours.date, endDate as any)
